@@ -1,0 +1,18 @@
+{
+  "name": "homebridge-chamberlain",
+  "version": "0.0.1",
+  "author": "Casey Foster <c@sey.me>",
+  "license": "MIT",
+  "main": "src",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caseywebdev/homebridge-chamberlain"
+  },
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "dependencies": {
+    "node-fetch": "1",
+    "underscore": "1.8.3"
+  }
+}
