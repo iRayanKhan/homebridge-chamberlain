@@ -2,8 +2,8 @@ const _ = require('underscore');
 const Api = require('./api');
 const instance = require('./instance');
 
-const IDLE_DELAY = 1000 * 60;
-const ACTIVE_DELAY = 1000 * 5;
+const IDLE_DELAY = 1000 * 15;
+const ACTIVE_DELAY = 1000 * 3;
 
 module.exports = class {
   constructor(log, {deviceId, name, password, username}) {
@@ -54,7 +54,7 @@ module.exports = class {
       desireddoorstate:
         service
           .getCharacteristic(Characteristic.TargetDoorState)
-          .on('get', this.setState.bind(this, 'desireddoorstate'))
+          .on('get', this.getState.bind(this, 'desireddoorstate'))
           .on('set', this.setState.bind(this, 'desireddoorstate'))
     };
 
@@ -100,7 +100,7 @@ module.exports = class {
     );
   }
 
-  setState(state, cb) {
+  setState(name, state, cb) {
     const value = this.hapToApi[name][state];
     this.log(`setting ${name} to ${this.hapToEnglish[name][state]}`);
     return this.api.setDeviceAttribute({name, value}).then(
