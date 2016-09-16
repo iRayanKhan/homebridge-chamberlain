@@ -14,34 +14,22 @@ module.exports = class {
     const {CurrentDoorState, TargetDoorState} = Characteristic;
 
     this.apiToHap = {
-      doorstate: {
-        1: CurrentDoorState.OPEN,
-        2: CurrentDoorState.CLOSED,
-        4: CurrentDoorState.OPENING,
-        5: CurrentDoorState.CLOSING
-      },
-      desireddoorstate: {
-        0: TargetDoorState.CLOSED,
-        1: TargetDoorState.OPEN
-      }
+      1: CurrentDoorState.OPEN,
+      2: CurrentDoorState.CLOSED,
+      4: CurrentDoorState.OPENING,
+      5: CurrentDoorState.CLOSING
     };
 
     this.hapToApi = {
-      doorstate: _.invert(this.apiToHap.doorstate),
-      desireddoorstate: _.invert(this.apiToHap.desireddoorstate)
+      [TargetDoorState.OPEN]: 1,
+      [TargetDoorState.CLOSED]: 0
     };
 
     this.hapToEnglish = {
-      doorstate: {
-        [CurrentDoorState.OPEN]: 'open',
-        [CurrentDoorState.CLOSED]: 'closed',
-        [CurrentDoorState.OPENING]: 'opening',
-        [CurrentDoorState.CLOSING]: 'closing'
-      },
-      desireddoorstate: {
-        [TargetDoorState.OPEN]: 'open',
-        [TargetDoorState.CLOSED]: 'closed'
-      }
+      [CurrentDoorState.OPEN]: 'open',
+      [CurrentDoorState.CLOSED]: 'closed',
+      [CurrentDoorState.OPENING]: 'opening',
+      [CurrentDoorState.CLOSING]: 'closing'
     };
 
     const service = this.service = new Service.GarageDoorOpener(name);
@@ -50,32 +38,26 @@ module.exports = class {
       doorstate:
         service
           .getCharacteristic(Characteristic.CurrentDoorState)
-          .on('get', this.getState.bind(this, 'doorstate')),
+          .on('get', this.getState.bind(this)),
       desireddoorstate:
         service
           .getCharacteristic(Characteristic.TargetDoorState)
-          .on('get', this.getState.bind(this, 'desireddoorstate'))
-          .on('set', this.setState.bind(this, 'desireddoorstate'))
+          .on('set', this.setState.bind(this))
     };
+
+    this.states.doorstate.value = CurrentDoorState.CLOSED;
+    this.states.desireddoorstate.value = TargetDoorState.CLOSED;
 
     (this.poll = this.poll.bind(this))();
   }
 
   poll() {
     let delay = IDLE_DELAY;
-    Promise.all(_.map(['doorstate', 'desireddoorstate'], name =>
-      new Promise((resolve, reject) =>
-        this.states[name].getValue((er, value) => {
-          if (er) return reject(er);
-
-          resolve(value);
-        })
-      )
-    )).then(([doorstate, desireddoorstate]) => {
-      const current = this.hapToEnglish.doorstate[doorstate];
-      const target = this.hapToEnglish.desireddoorstate[desireddoorstate];
-      if (current !== target) delay = ACTIVE_DELAY;
-    }).catch(er => this.log(er)).then(() => setTimeout(this.poll, delay));
+    return this.getState().then(() => {
+      if (this.states.doorstate.value !== this.state.desireddoorstate.value) {
+        delay = ACTIVE_DELAY;
+      }
+    }).catch(_.noop).then(() => setTimeout(this.poll, delay));
   }
 
   getErrorHandler(cb) {
@@ -87,11 +69,11 @@ module.exports = class {
     };
   }
 
-  getState(name, cb) {
-    return this.api.getDeviceAttribute({name}).then(
+  getState(cb) {
+    return this.api.getDeviceAttribute({name: 'doorstate'}).then(
       state => {
-        state = this.apiToHap[name][state];
-        this.log(`${name} is ${this.hapToEnglish[name][state]}`);
+        state = this.apiToHap[state];
+        this.log(`current state is ${this.hapToEnglish[state]}`);
         if (cb) return cb(null, state);
 
         return state;
@@ -100,14 +82,11 @@ module.exports = class {
     );
   }
 
-  setState(name, state, cb) {
-    const value = this.hapToApi[name][state];
-    this.log(`setting ${name} to ${this.hapToEnglish[name][state]}`);
-    return this.api.setDeviceAttribute({name, value}).then(
-      () => {
-        this.states[name].setValue(state);
-        if (cb) return cb();
-      },
+  setState(state, cb) {
+    const value = this.hapToApi[state];
+    this.log(`setting target state to ${this.hapToEnglish[state]}`);
+    return this.api.setDeviceAttribute({name: 'desireddoorstate', value}).then(
+      () => cb(),
       this.getErrorHandler(cb)
     );
   }

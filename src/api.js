@@ -79,17 +79,23 @@ module.exports = class {
   }
 
   getDeviceAttribute(options = {}) {
-    return this.getDeviceId(options).then(MyQDeviceId =>
-      this.getDeviceList(options).then(devices => {
-        const device = _.find(devices, {MyQDeviceId});
-        if (!device) throw new Error(`Cannot find device ${MyQDeviceId}`);
-
-        const {name} = options;
-        const attribute = _.find(device.Attributes, {Name: name});
-        if (!attribute) throw new Error(`Cannot find attribute ${name}`);
-
-        return attribute.Value;
-      })
+    const {name: AttributeName} = options;
+    return this.getSecurityTokenAndDeviceId(options).then(
+      ({securityToken: SecurityToken, deviceId: MyQDeviceId}) =>
+        req({
+          method: 'GET',
+          pathname: '/api/v4/deviceattribute/getdeviceattribute',
+          headers: {
+            MyQApplicationId: appId,
+            SecurityToken
+          },
+          query: {
+            ApplicationId: appId,
+            AttributeName,
+            MyQDeviceId,
+            SecurityToken
+          }
+        }).then(({AttributeValue}) => AttributeValue)
     );
   }
 
