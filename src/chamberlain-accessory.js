@@ -52,12 +52,10 @@ module.exports = class {
   }
 
   poll() {
-    let delay = IDLE_DELAY;
-    return this.getState().then(() => {
-      if (this.states.doorstate.value !== this.state.desireddoorstate.value) {
-        delay = ACTIVE_DELAY;
-      }
-    }).catch(_.noop).then(() => setTimeout(this.poll, delay));
+    return this.getState().then(() =>
+      this.states.doorstate.value !== this.state.desireddoorstate.value ?
+      ACTIVE_DELAY : IDLE_DELAY
+    ).catch(_.noop).then((delay = IDLE_DELAY) => setTimeout(this.poll, delay));
   }
 
   getErrorHandler(cb) {
