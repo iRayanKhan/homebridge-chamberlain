@@ -1,6 +1,6 @@
 {
   "name": "homebridge-chamberlain",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Casey Foster <c@sey.me>",
   "license": "MIT",
   "main": "src",
@@ -14,5 +14,8 @@
   "dependencies": {
     "node-fetch": "1",
     "underscore": "1.8.3"
+  },
+  "engines": {
+    "homebridge": "x"
   }
 }
