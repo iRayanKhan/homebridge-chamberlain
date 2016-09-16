@@ -1,12 +1,9 @@
+const _ = require('underscore');
 const Api = require('./api');
 const instance = require('./instance');
 
-let waitTimeoutId;
-const wait = delay =>
-  new Promise(resolve => {
-    clearTimeout(waitTimeoutId);
-    waitTimeoutId = setTimeout(resolve, delay * 1000);
-  });
+const IDLE_DELAY = 1000 * 60;
+const ACTIVE_DELAY = 1000 * 5;
 
 module.exports = class {
   constructor(log, {deviceId, name, password, username}) {
@@ -14,86 +11,104 @@ module.exports = class {
     this.api = new Api({deviceId, password, username});
 
     const {Service, Characteristic} = instance.homebridge.hap;
-    const {CurrentDoorState: states} = Characteristic;
+    const {CurrentDoorState, TargetDoorState} = Characteristic;
 
-    this.doorstateToHap = {
-      1: states.OPEN,
-      2: states.CLOSED,
-      4: states.OPENING,
-      5: states.CLOSING
+    this.apiToHap = {
+      doorstate: {
+        1: CurrentDoorState.OPEN,
+        2: CurrentDoorState.CLOSED,
+        4: CurrentDoorState.OPENING,
+        5: CurrentDoorState.CLOSING
+      },
+      desireddoorstate: {
+        0: TargetDoorState.CLOSED,
+        1: TargetDoorState.OPEN
+      }
     };
 
-    this.hapToDesireddoorstate = {
-      [states.OPEN]: 1,
-      [states.CLOSED]: 0
+    this.hapToApi = {
+      doorstate: _.invert(this.apiToHap.doorstate),
+      desireddoorstate: _.invert(this.apiToHap.desireddoorstate)
     };
 
     this.hapToEnglish = {
-      [states.OPEN]: 'open',
-      [states.CLOSED]: 'closed',
-      [states.OPENING]: 'opening',
-      [states.CLOSING]: 'closing'
+      doorstate: {
+        [CurrentDoorState.OPEN]: 'open',
+        [CurrentDoorState.CLOSED]: 'closed',
+        [CurrentDoorState.OPENING]: 'opening',
+        [CurrentDoorState.CLOSING]: 'closing'
+      },
+      desireddoorstate: {
+        [TargetDoorState.OPEN]: 'open',
+        [TargetDoorState.CLOSED]: 'closed'
+      }
     };
 
     const service = this.service = new Service.GarageDoorOpener(name);
 
-    service
-      .getCharacteristic(Characteristic.CurrentDoorState)
-      .on('get', this.getState.bind(this));
+    this.states = {
+      doorstate:
+        service
+          .getCharacteristic(Characteristic.CurrentDoorState)
+          .on('get', this.getState.bind(this, 'doorstate')),
+      desireddoorstate:
+        service
+          .getCharacteristic(Characteristic.TargetDoorState)
+          .on('get', this.setState.bind(this, 'desireddoorstate'))
+          .on('set', this.setState.bind(this, 'desireddoorstate'))
+    };
 
-    service
-      .getCharacteristic(Characteristic.TargetDoorState)
-      .on('set', this.setState.bind(this));
-
-    this.reportState();
+    (this.poll = this.poll.bind(this))();
   }
 
-  getState(cb) {
-    return this.api.getDeviceAttribute({name: 'doorstate'}).then(
+  poll() {
+    let delay = IDLE_DELAY;
+    Promise.all(_.map(['doorstate', 'desireddoorstate'], name =>
+      new Promise((resolve, reject) =>
+        this.states[name].getValue((er, value) => {
+          if (er) return reject(er);
+
+          resolve(value);
+        })
+      )
+    )).then(([doorstate, desireddoorstate]) => {
+      const current = this.hapToEnglish.doorstate[doorstate];
+      const target = this.hapToEnglish.desireddoorstate[desireddoorstate];
+      if (current !== target) delay = ACTIVE_DELAY;
+    }).catch(er => this.log(er)).then(() => setTimeout(this.poll, delay));
+  }
+
+  getErrorHandler(cb) {
+    return er => {
+      this.log(er);
+      if (er) return cb(er);
+
+      throw er;
+    };
+  }
+
+  getState(name, cb) {
+    return this.api.getDeviceAttribute({name}).then(
       state => {
-        state = this.doorstateToHap[state];
-        this.log(`current state is ${this.hapToEnglish[state]}`);
-        cb(null, state);
+        state = this.apiToHap[name][state];
+        this.log(`${name} is ${this.hapToEnglish[name][state]}`);
+        if (cb) return cb(null, state);
+
+        return state;
       },
-      cb
+      this.getErrorHandler(cb)
     );
   }
 
   setState(state, cb) {
-    this.log(`setting target state to ${this.hapToEnglish[state]}`);
-    return this.api.setDeviceAttribute({
-      name: 'desireddoorstate',
-      value: this.hapToDesireddoorstate[state]
-    }).then(
+    const value = this.hapToApi[name][state];
+    this.log(`setting ${name} to ${this.hapToEnglish[name][state]}`);
+    return this.api.setDeviceAttribute({name, value}).then(
       () => {
-        this.log(`target state set to ${this.hapToEnglish[state]}`);
-        cb();
-
-        // Immediately report the current state then report the state over the
-        // next 30 seconds;
-        Promise.resolve()
-          .then(() => this.reportState())
-          .then(() => wait(10))
-          .then(() => this.reportState())
-          .then(() => wait(10))
-          .then(() => this.reportState())
-          .then(() => wait(10))
-          .then(() => this.reportState())
-          .catch(er => this.log(er));
+        this.states[name].setValue(state);
+        if (cb) return cb();
       },
-      cb
-    );
-  }
-
-  reportState() {
-    const {CurrentDoorState} = instance.homebridge.hap.Characteristic;
-    return new Promise((resolve, reject) =>
-      this.getState((er, state) => {
-        if (er) return reject(er);
-
-        this.service.setCharacteristic(CurrentDoorState, state);
-        resolve();
-      })
+      this.getErrorHandler(cb)
     );
   }
 
