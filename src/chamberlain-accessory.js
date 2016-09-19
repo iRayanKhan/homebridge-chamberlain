@@ -2,8 +2,8 @@ const _ = require('underscore');
 const Api = require('./api');
 const instance = require('./instance');
 
-const IDLE_DELAY = 1000 * 15;
-const ACTIVE_DELAY = 1000 * 3;
+const ACTIVE_DELAY = 1000 * 2;
+const IDLE_DELAY = 1000 * 10;
 
 module.exports = class {
   constructor(log, {deviceId, name, password, username}) {
@@ -38,11 +38,13 @@ module.exports = class {
       doorstate:
         service
           .getCharacteristic(Characteristic.CurrentDoorState)
-          .on('get', this.getState.bind(this)),
+          .on('get', this.getValue.bind(this, 'doorstate'))
+          .on('change', this.logChange.bind(this, 'doorstate')),
       desireddoorstate:
         service
           .getCharacteristic(Characteristic.TargetDoorState)
-          .on('set', this.setState.bind(this))
+          .on('set', this.setValue.bind(this, 'desireddoorstate'))
+          .on('change', this.logChange.bind(this, 'desireddoorstate'))
     };
 
     this.states.doorstate.value = CurrentDoorState.CLOSED;
@@ -52,41 +54,37 @@ module.exports = class {
   }
 
   poll() {
-    return this.getState().then(() =>
+    return new Promise((resolve, reject) =>
+      this.states.doorstate.getValue(er => er ? reject(er) : resolve())
+    ).then(() =>
       this.states.doorstate.value !== this.state.desireddoorstate.value ?
       ACTIVE_DELAY : IDLE_DELAY
     ).catch(_.noop).then((delay = IDLE_DELAY) => setTimeout(this.poll, delay));
   }
 
+  logChange(name, {oldValue, newValue}) {
+    const from = this.hapToEnglish[oldValue];
+    const to = this.hapToEnglish[newValue];
+    this.log(`${name} changed from ${from} to ${to}`);
+  }
+
   getErrorHandler(cb) {
     return er => {
       this.log(er);
-      if (er) return cb(er);
-
-      throw er;
+      cb(er);
     };
   }
 
-  getState(cb) {
-    return this.api.getDeviceAttribute({name: 'doorstate'}).then(
-      state => {
-        state = this.apiToHap[state];
-        this.log(`current state is ${this.hapToEnglish[state]}`);
-        if (cb) return cb(null, state);
-
-        return state;
-      },
-      this.getErrorHandler(cb)
-    );
+  getValue(name, cb) {
+    return this.api.getDeviceAttribute({name})
+      .then(cb.bind(null, null), this.getErrorHandler(cb));
   }
 
-  setState(state, cb) {
-    const value = this.hapToApi[state];
-    this.log(`setting target state to ${this.hapToEnglish[state]}`);
-    return this.api.setDeviceAttribute({name: 'desireddoorstate', value}).then(
-      () => cb(),
-      this.getErrorHandler(cb)
-    );
+  setValue(name, value, cb) {
+    this.log(`attempting to set ${name} to ${this.hapToEnglish[value]}`);
+    value = this.hapToApi[value];
+    return this.api.setDeviceAttribute({name, value})
+      .then(cb.bind(null, null), this.getErrorHandler(cb));
   }
 
   getServices() {

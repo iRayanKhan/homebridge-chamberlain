@@ -1,6 +1,6 @@
 {
   "name": "homebridge-chamberlain",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "author": "Casey Foster <c@sey.me>",
   "license": "MIT",
   "main": "src",
