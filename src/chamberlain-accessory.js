@@ -77,14 +77,16 @@ module.exports = class {
 
   getValue(name, cb) {
     return this.api.getDeviceAttribute({name})
-      .then(cb.bind(null, null), this.getErrorHandler(cb));
+      .then(value => cb(null, this.apiToHap[value]))
+      .catch(this.getErrorHandler(cb));
   }
 
   setValue(name, value, cb) {
     this.log(`attempting to set ${name} to ${this.hapToEnglish[value]}`);
     value = this.hapToApi[value];
     return this.api.setDeviceAttribute({name, value})
-      .then(cb.bind(null, null), this.getErrorHandler(cb));
+      .then(cb.bind(null, null))
+      .catch(this.getErrorHandler(cb));
   }
 
   getServices() {
