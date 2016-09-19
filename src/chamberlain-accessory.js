@@ -38,12 +38,12 @@ module.exports = class {
       doorstate:
         service
           .getCharacteristic(Characteristic.CurrentDoorState)
-          .on('get', this.getValue.bind(this, 'doorstate'))
+          .on('get', this.getCurrentDoorState.bind(this))
           .on('change', this.logChange.bind(this, 'doorstate')),
       desireddoorstate:
         service
           .getCharacteristic(Characteristic.TargetDoorState)
-          .on('set', this.setValue.bind(this, 'desireddoorstate'))
+          .on('set', this.setTargetDoorState.bind(this))
           .on('change', this.logChange.bind(this, 'desireddoorstate'))
     };
 
@@ -54,12 +54,16 @@ module.exports = class {
   }
 
   poll() {
+    clearTimeout(this.pollTimeoutId);
     return new Promise((resolve, reject) =>
       this.states.doorstate.getValue(er => er ? reject(er) : resolve())
     ).then(() =>
       this.states.doorstate.value !== this.state.desireddoorstate.value ?
       ACTIVE_DELAY : IDLE_DELAY
-    ).catch(_.noop).then((delay = IDLE_DELAY) => setTimeout(this.poll, delay));
+    ).catch(_.noop).then((delay = IDLE_DELAY) => {
+      clearTimeout(this.pollTimeoutId);
+      this.pollTimeoutId = setTimeout(this.poll, delay);
+    });
   }
 
   logChange(name, {oldValue, newValue}) {
@@ -75,17 +79,19 @@ module.exports = class {
     };
   }
 
-  getValue(name, cb) {
-    return this.api.getDeviceAttribute({name})
+  getCurrentDoorState(cb) {
+    return this.api.getDeviceAttribute({name: 'doorstate'})
       .then(value => cb(null, this.apiToHap[value]))
       .catch(this.getErrorHandler(cb));
   }
 
-  setValue(name, value, cb) {
-    this.log(`attempting to set ${name} to ${this.hapToEnglish[value]}`);
+  setTargetDoorState(value, cb) {
     value = this.hapToApi[value];
-    return this.api.setDeviceAttribute({name, value})
-      .then(cb.bind(null, null))
+    return this.api.setDeviceAttribute({name: 'desireddoorstate', value})
+      .then(() => {
+        this.poll();
+        cb();
+      })
       .catch(this.getErrorHandler(cb));
   }
 
