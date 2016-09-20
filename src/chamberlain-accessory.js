@@ -8,7 +8,7 @@ const IDLE_DELAY = 1000 * 10;
 module.exports = class {
   constructor(log, {deviceId, name, password, username}) {
     this.log = log;
-    this.api = new Api({deviceId, password, username});
+    this.api = new Api({MyQDeviceId: deviceId, password, username});
 
     const {Service, Characteristic} = instance.homebridge.hap;
     const {CurrentDoorState, TargetDoorState} = Characteristic;

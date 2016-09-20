@@ -2,8 +2,8 @@ const _ = require('underscore');
 const fetch = require('node-fetch');
 const url = require('url');
 
-const appId =
-  'JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu';
+const MyQApplicationId =
+  'NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx';
 const protocol = 'https:';
 const host = 'myqexternal.myqdevice.com';
 
@@ -13,7 +13,12 @@ const req = ({body, headers, method, pathname, query}) =>
   fetch(url.format({host, pathname, protocol, query}), {
     body: body == null ? body : JSON.stringify(body),
     headers: _.extend({
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'User-Agent': 'Chamberlain/3.61.1 (iPhone; iOS 10.0.1; Scale/2.00)',
+      ApiVersion: '4.1',
+      BrandId: '2',
+      Culture: 'en',
+      MyQApplicationId
     }, headers),
     method
   }).then(res => res.json()).then(data => {
@@ -30,93 +35,80 @@ module.exports = class {
 
   getSecurityToken(options = {}) {
     options = _.extend({}, this.options, options);
-    const {password, securityToken, username} = options;
-    if (securityToken) return Promise.resolve(securityToken);
+    const {password, SecurityToken, username} = options;
+    if (SecurityToken) return Promise.resolve(SecurityToken);
 
     return req({
-      method: 'GET',
-      pathname: '/api/user/validatewithculture',
-      query: {appId, culture: 'en', password, username}
-    }).then(({SecurityToken: securityToken}) => {
-      this.options = _.extend({}, this.options, {securityToken});
-      return securityToken;
+      method: 'POST',
+      pathname: '/api/v4/User/Validate',
+      body: {password, username}
+    }).then(({SecurityToken}) => {
+      this.options = _.extend({}, this.options, {SecurityToken});
+      return SecurityToken;
     });
   }
 
   getDeviceList(options = {}) {
-    return this.getSecurityToken(options).then(securityToken =>
+    return this.getSecurityToken(options).then(SecurityToken =>
       req({
         method: 'GET',
-        pathname: '/api/userdevicedetails',
-        query: {appId, securityToken}
+        pathname: '/api/v4/UserDeviceDetails/Get',
+        headers: {SecurityToken},
+        query: {filterOn: 'true'}
       })
     ).then(({Devices}) => Devices);
   }
 
   getDeviceId(options = {}) {
     options = _.extend({}, this.options, options);
-    const {deviceId} = options;
-    if (deviceId) return Promise.resolve(deviceId);
+    const {MyQDeviceId} = options;
+    if (MyQDeviceId) return Promise.resolve(MyQDeviceId);
 
     return this.getDeviceList(options).then(devices => {
       const ids = _.map(_.filter(devices, {MyQDeviceTypeId}), 'MyQDeviceId');
-      const {0: deviceId, length} = ids;
+      const {0: MyQDeviceId, length} = ids;
       if (length === 0) throw new Error('No controllable devices found');
 
       if (length === 1) {
-        this.options = _.extend({}, this.options, {deviceId});
-        return deviceId;
+        this.options = _.extend({}, this.options, {MyQDeviceId});
+        return MyQDeviceId;
       }
 
       throw new Error(`Multiple controllable devices found: ${ids.join(', ')}`);
     });
   }
 
-  getSecurityTokenAndDeviceId(options = {}) {
-    return this.getSecurityToken(options).then(securityToken =>
-      this.getDeviceId(options).then(deviceId => ({securityToken, deviceId}))
+  getSecurityTokenAndMyQDeviceId(options = {}) {
+    return this.getSecurityToken(options).then(SecurityToken =>
+      this.getDeviceId(options).then(MyQDeviceId => ({
+        SecurityToken,
+        MyQDeviceId
+      }))
     );
   }
 
   getDeviceAttribute(options = {}) {
     const {name: AttributeName} = options;
-    return this.getSecurityTokenAndDeviceId(options).then(
-      ({securityToken: SecurityToken, deviceId: MyQDeviceId}) =>
+    return this.getSecurityTokenAndMyQDeviceId(options).then(
+      ({SecurityToken, MyQDeviceId}) =>
         req({
           method: 'GET',
-          pathname: '/api/v4/deviceattribute/getdeviceattribute',
-          headers: {
-            MyQApplicationId: appId,
-            SecurityToken
-          },
-          query: {
-            ApplicationId: appId,
-            AttributeName,
-            MyQDeviceId,
-            SecurityToken
-          }
+          pathname: '/api/v4/DeviceAttribute/GetDeviceAttribute',
+          headers: {SecurityToken},
+          query: {AttributeName, MyQDeviceId}
         }).then(({AttributeValue}) => AttributeValue)
     );
   }
 
   setDeviceAttribute(options = {}) {
     const {name: AttributeName, value: AttributeValue} = options;
-    return this.getSecurityTokenAndDeviceId(options).then(
-      ({securityToken: SecurityToken, deviceId: MyQDeviceId}) =>
+    return this.getSecurityTokenAndMyQDeviceId(options).then(
+      ({SecurityToken, MyQDeviceId}) =>
         req({
           method: 'PUT',
-          pathname: '/api/v4/deviceattribute/putdeviceattribute',
-          headers: {
-            MyQApplicationId: appId,
-            SecurityToken
-          },
-          body: {
-            ApplicationId: appId,
-            AttributeName,
-            AttributeValue,
-            MyQDeviceId,
-            SecurityToken
-          }
+          pathname: '/api/v4/DeviceAttribute/PutDeviceAttribute',
+          headers: {SecurityToken},
+          body: {AttributeName, AttributeValue, MyQDeviceId}
         })
     );
   }
