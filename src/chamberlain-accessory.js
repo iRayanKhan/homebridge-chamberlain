@@ -5,12 +5,6 @@ const instance = require('./instance');
 const ACTIVE_DELAY = 1000 * 2;
 const IDLE_DELAY = 1000 * 10;
 
-const promisify = fn =>
-  (...args) =>
-    new Promise((resolve, reject) =>
-      fn(...args, (er, res) => er ? reject(er) : resolve(res))
-    );
-
 module.exports = class {
   constructor(log, {deviceId, name, password, username}) {
     this.log = log;
@@ -56,7 +50,6 @@ module.exports = class {
       desireddoorstate:
         service
           .getCharacteristic(Characteristic.TargetDoorState)
-          .on('get', this.getTargetDoorState.bind(this))
           .on('set', this.setTargetDoorState.bind(this))
           .on('change', this.logChange.bind(this, 'desireddoorstate'))
     };
@@ -70,21 +63,26 @@ module.exports = class {
   poll() {
     clearTimeout(this.pollTimeoutId);
     const {doorstate, desireddoorstate} = this.states;
-    return Promise.resolve()
-      .then(() => promisify(doorstate.getValue.bind(doorstate))())
-      .then(() => promisify(desireddoorstate.getValue.bind(desireddoorstate))())
-      .then(() =>
-        doorstate.value !== desireddoorstate.value ? ACTIVE_DELAY : IDLE_DELAY
-      ).catch(_.noop).then((delay = IDLE_DELAY) => {
-        clearTimeout(this.pollTimeoutId);
-        this.pollTimeoutId = setTimeout(this.poll, delay);
-      });
+    return new Promise((resolve, reject) =>
+      doorstate.getValue(er => er ? reject(er) : resolve())
+    ).then(() =>
+      doorstate.value !== desireddoorstate.value ? ACTIVE_DELAY : IDLE_DELAY
+    ).catch(_.noop).then((delay = IDLE_DELAY) => {
+      clearTimeout(this.pollTimeoutId);
+      this.pollTimeoutId = setTimeout(this.poll, delay);
+    });
   }
 
   logChange(name, {oldValue, newValue}) {
     const from = this.hapToEnglish[oldValue];
     const to = this.hapToEnglish[newValue];
     this.log(`${name} changed from ${from} to ${to}`);
+
+    if (name === 'doorstate') {
+      this.reactiveSetTargetDoorState = true;
+      this.states.desireddoorstate.setValue(this.currentToTarget[newValue]);
+      delete this.reactiveSetTargetDoorState;
+    }
   }
 
   getErrorHandler(cb) {
@@ -100,16 +98,9 @@ module.exports = class {
       .catch(this.getErrorHandler(cb));
   }
 
-  getTargetDoorState(cb) {
-
-    // Infer the target door state from the current door state. Unfortunately
-    // there is no /api/v4 endpoint for this or if there is, I haven't been able
-    // to find it. Preferably there would be a way to get 'desireddoorstate'
-    // from the API, but I can't find it.
-    cb(null, this.currentToTarget[this.states.doorstate.value]);
-  }
-
   setTargetDoorState(value, cb) {
+    if (this.reactiveSetTargetDoorState) return cb();
+
     value = this.hapToApi[value];
     return this.api.setDeviceAttribute({name: 'desireddoorstate', value})
       .then(() => {
