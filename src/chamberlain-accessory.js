@@ -5,6 +5,12 @@ const instance = require('./instance');
 const ACTIVE_DELAY = 1000 * 2;
 const IDLE_DELAY = 1000 * 10;
 
+const promisify = fn =>
+  (...args) =>
+    new Promise((resolve, reject) =>
+      fn(...args, (er, res) => er ? reject(er) : resolve(res))
+    );
+
 module.exports = class {
   constructor(log, {deviceId, name, password, username}) {
     this.log = log;
@@ -32,6 +38,13 @@ module.exports = class {
       [CurrentDoorState.CLOSING]: 'closing'
     };
 
+    this.currentToTarget = {
+      [CurrentDoorState.OPEN]: TargetDoorState.OPEN,
+      [CurrentDoorState.CLOSED]: TargetDoorState.CLOSED,
+      [CurrentDoorState.OPENING]: TargetDoorState.OPEN,
+      [CurrentDoorState.CLOSING]: TargetDoorState.CLOSED
+    };
+
     const service = this.service = new Service.GarageDoorOpener(name);
 
     this.states = {
@@ -43,6 +56,7 @@ module.exports = class {
       desireddoorstate:
         service
           .getCharacteristic(Characteristic.TargetDoorState)
+          .on('get', this.getTargetDoorState.bind(this))
           .on('set', this.setTargetDoorState.bind(this))
           .on('change', this.logChange.bind(this, 'desireddoorstate'))
     };
@@ -55,15 +69,16 @@ module.exports = class {
 
   poll() {
     clearTimeout(this.pollTimeoutId);
-    return new Promise((resolve, reject) =>
-      this.states.doorstate.getValue(er => er ? reject(er) : resolve())
-    ).then(() =>
-      this.states.doorstate.value !== this.state.desireddoorstate.value ?
-      ACTIVE_DELAY : IDLE_DELAY
-    ).catch(_.noop).then((delay = IDLE_DELAY) => {
-      clearTimeout(this.pollTimeoutId);
-      this.pollTimeoutId = setTimeout(this.poll, delay);
-    });
+    const {doorstate, desireddoorstate} = this.states;
+    return Promise.resolve()
+      .then(() => promisify(doorstate.getValue.bind(doorstate))())
+      .then(() => promisify(desireddoorstate.getValue.bind(desireddoorstate))())
+      .then(() =>
+        doorstate.value !== desireddoorstate.value ? ACTIVE_DELAY : IDLE_DELAY
+      ).catch(_.noop).then((delay = IDLE_DELAY) => {
+        clearTimeout(this.pollTimeoutId);
+        this.pollTimeoutId = setTimeout(this.poll, delay);
+      });
   }
 
   logChange(name, {oldValue, newValue}) {
@@ -83,6 +98,15 @@ module.exports = class {
     return this.api.getDeviceAttribute({name: 'doorstate'})
       .then(value => cb(null, this.apiToHap[value]))
       .catch(this.getErrorHandler(cb));
+  }
+
+  getTargetDoorState(cb) {
+
+    // Infer the target door state from the current door state. Unfortunately
+    // there is no /api/v4 endpoint for this or if there is, I haven't been able
+    // to find it. Preferably there would be a way to get 'desireddoorstate'
+    // from the API, but I can't find it.
+    cb(null, this.currentToTarget[this.states.doorstate.value]);
   }
 
   setTargetDoorState(value, cb) {
