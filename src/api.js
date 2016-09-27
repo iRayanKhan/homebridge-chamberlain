@@ -78,38 +78,53 @@ module.exports = class {
     });
   }
 
+  maybeRetry(fn) {
+    return fn().catch(er => {
+      if (er.message.indexOf('Please login again') === -1) throw er;
+
+      this.options = _.omit(this.options, 'SecurityToken');
+      return fn();
+    });
+  }
+
   getSecurityTokenAndMyQDeviceId(options = {}) {
-    return this.getSecurityToken(options).then(SecurityToken =>
-      this.getDeviceId(options).then(MyQDeviceId => ({
-        SecurityToken,
-        MyQDeviceId
-      }))
+    return this.maybeRetry(() =>
+      this.getSecurityToken(options).then(SecurityToken =>
+        this.getDeviceId(options).then(MyQDeviceId => ({
+          SecurityToken,
+          MyQDeviceId
+        }))
+      )
     );
   }
 
   getDeviceAttribute(options = {}) {
     const {name: AttributeName} = options;
-    return this.getSecurityTokenAndMyQDeviceId(options).then(
-      ({SecurityToken, MyQDeviceId}) =>
-        req({
-          method: 'GET',
-          pathname: '/api/v4/DeviceAttribute/GetDeviceAttribute',
-          headers: {SecurityToken},
-          query: {AttributeName, MyQDeviceId}
-        }).then(({AttributeValue}) => AttributeValue)
+    return this.maybeRetry(() =>
+      this.getSecurityTokenAndMyQDeviceId(options).then(
+        ({SecurityToken, MyQDeviceId}) =>
+          req({
+            method: 'GET',
+            pathname: '/api/v4/DeviceAttribute/GetDeviceAttribute',
+            headers: {SecurityToken},
+            query: {AttributeName, MyQDeviceId}
+          }).then(({AttributeValue}) => AttributeValue)
+      )
     );
   }
 
   setDeviceAttribute(options = {}) {
     const {name: AttributeName, value: AttributeValue} = options;
-    return this.getSecurityTokenAndMyQDeviceId(options).then(
-      ({SecurityToken, MyQDeviceId}) =>
-        req({
-          method: 'PUT',
-          pathname: '/api/v4/DeviceAttribute/PutDeviceAttribute',
-          headers: {SecurityToken},
-          body: {AttributeName, AttributeValue, MyQDeviceId}
-        })
+    return this.maybeRetry(() =>
+      this.getSecurityTokenAndMyQDeviceId(options).then(
+        ({SecurityToken, MyQDeviceId}) =>
+          req({
+            method: 'PUT',
+            pathname: '/api/v4/DeviceAttribute/PutDeviceAttribute',
+            headers: {SecurityToken},
+            body: {AttributeName, AttributeValue, MyQDeviceId}
+          })
+      )
     );
   }
 };
