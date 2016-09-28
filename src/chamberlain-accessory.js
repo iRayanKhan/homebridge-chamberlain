@@ -76,7 +76,7 @@ module.exports = class {
   logChange(name, {oldValue, newValue}) {
     const from = this.hapToEnglish[oldValue];
     const to = this.hapToEnglish[newValue];
-    this.log(`${name} changed from ${from} to ${to}`);
+    this.log.info(`${name} changed from ${from} to ${to}`);
 
     if (name === 'doorstate') {
       this.reactiveSetTargetDoorState = true;
@@ -87,7 +87,7 @@ module.exports = class {
 
   getErrorHandler(cb) {
     return er => {
-      this.log(er);
+      this.log.error(er);
       cb(er);
     };
   }
