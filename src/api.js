@@ -7,7 +7,7 @@ const MyQApplicationId =
 const protocol = 'https:';
 const host = 'myqexternal.myqdevice.com';
 
-const MyQDeviceTypeId = 2;
+const GATEWAY_ID = 1;
 
 const req = ({body, headers, method, pathname, query}) =>
   fetch(url.format({host, pathname, protocol, query}), {
@@ -65,7 +65,8 @@ module.exports = class {
     if (MyQDeviceId) return Promise.resolve(MyQDeviceId);
 
     return this.getDeviceList(options).then(devices => {
-      const ids = _.map(_.filter(devices, {MyQDeviceTypeId}), 'MyQDeviceId');
+      const withoutGateways = _.reject(devices, {MyQDeviceTypeId: GATEWAY_ID});
+      const ids = _.map(withoutGateways, 'MyQDeviceId');
       const {0: MyQDeviceId, length} = ids;
       if (length === 0) throw new Error('No controllable devices found');
 
