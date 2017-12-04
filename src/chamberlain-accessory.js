@@ -15,8 +15,10 @@ module.exports = class {
 
     this.apiToHap = {
       1: CurrentDoorState.OPEN,
+      9: CurrentDoorState.OPEN,
       2: CurrentDoorState.CLOSED,
       4: CurrentDoorState.OPENING,
+      0: CurrentDoorState.OPENING,
       5: CurrentDoorState.CLOSING
     };
 
