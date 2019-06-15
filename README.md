@@ -14,7 +14,7 @@ the `accessories` array:
 }
 ```
 
-If you have multiple garage doors, the plugin will throw an error and list the controllable device IDs. Use those IDs to create individual accessories. Be sure to uniquely name the door via the "name" field, otherwise you'll get a UUID error in the homekit console (`Error: Cannot add a bridged Accessory with the same UUID as another bridged Accessory`).
+If you have multiple garage doors, the plugin will throw an error and list the controllable device IDs. Use those IDs to create individual accessories. Be sure to uniquely name the door via the "name" field, otherwise you'll get a UUID error in the console (`Error: Cannot add a bridged Accessory with the same UUID as another bridged Accessory`).
 
 ```json
 {
