@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const url = require('url');
 
 const MyQApplicationId =
-  'NWknvuBd7LoFHfXmKNMBcgajXtZEgKUh4V7WNzMidrpUUluDpVYVZx+xT4PCM5Kx';
+  'Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i';
 const protocol = 'https:';
 const host = 'myqexternal.myqdevice.com';
 
