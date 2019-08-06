@@ -14,7 +14,7 @@ const req = ({body, headers, method, pathname, query}) =>
     body: body == null ? body : JSON.stringify(body),
     headers: _.extend({
       'Content-Type': 'application/json',
-      'User-Agent': 'Chamberlain/3.61.1 (iPhone; iOS 10.0.1; Scale/2.00)',
+      'User-Agent': 'Chamberlain/3.61.1 (iPhone; iOS 11.4.0; Scale/2.00)',
       ApiVersion: '4.1',
       BrandId: '2',
       Culture: 'en',
