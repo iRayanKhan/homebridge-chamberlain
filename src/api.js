@@ -5,7 +5,7 @@ const url = require('url');
 const MyQApplicationId =
   'Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i';
 const protocol = 'https:';
-const host = 'myqexternal.myqdevice.com';
+const host = 'api.myqdevice.com';
 
 const GATEWAY_ID = 1;
 
@@ -14,18 +14,26 @@ const req = ({body, headers, method, pathname, query}) =>
     body: body == null ? body : JSON.stringify(body),
     headers: _.extend({
       'Content-Type': 'application/json',
-      'User-Agent': 'Chamberlain/3.61.1 (iPhone; iOS 11.4.0; Scale/2.00)',
+      'User-Agent': 'Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0',
       ApiVersion: '4.1',
       BrandId: '2',
       Culture: 'en',
       MyQApplicationId
     }, headers),
     method
-  }).then(res => res.json()).then(data => {
-    const {ReturnCode: code, ErrorMessage: message} = data;
-    if (code !== '0') throw new Error(message || `Unknown Error (${code})`);
-
-    return data;
+  }).then((res) => {
+    if (res.status < 200 || res.status >= 300) {
+      return res.text().then(body => {
+        throw new Error('invalid response, got HTTP ' + res.status + ': ' + body)
+      })
+    }
+    return res.text()
+  }).then(data => {
+    if (data) {
+      return JSON.parse(data);
+    } else {
+      return null
+    }
   });
 
 module.exports = class {
@@ -40,23 +48,44 @@ module.exports = class {
 
     return req({
       method: 'POST',
-      pathname: '/api/v4/User/Validate',
-      body: {password, username}
+      pathname: '/api/v5/Login',
+      body: {Password: password, UserName: username}
     }).then(({SecurityToken}) => {
       this.options = _.extend({}, this.options, {SecurityToken});
       return SecurityToken;
     });
   }
 
-  getDeviceList(options = {}) {
+  getAccountId(options = {}) {
+    options = _.extend({}, this.options, options);
+    const {SecurityToken, AccountID} = options;
+    if (AccountID) return Promise.resolve(AccountID);
+
     return this.getSecurityToken(options).then(SecurityToken =>
       req({
         method: 'GET',
-        pathname: '/api/v4/UserDeviceDetails/Get',
-        headers: {SecurityToken},
-        query: {filterOn: 'true'}
+        pathname: '/api/v5/My',
+        query: {expand: 'account'},
+        headers: {SecurityToken}
       })
-    ).then(({Devices}) => Devices);
+      ).then(({Account}) => {
+        this.options = _.extend({}, this.options, {AccountID: Account.Id});
+        return Account.Id
+      })
+  }
+
+  getDeviceList(options = {}) {
+    options = _.extend({}, this.options, options);
+    return this.getSecurityToken(options).then(SecurityToken =>
+      this.getAccountId(options).then(AccountId =>
+        req({
+          method: 'GET',
+          pathname: '/api/v5/Accounts/' + AccountId + '/Devices',
+          headers: {SecurityToken},
+          query: {filterOn: 'true'}
+        })
+      )
+    ).then(({items}) => items);
   }
 
   getDeviceId(options = {}) {
@@ -65,14 +94,13 @@ module.exports = class {
     if (MyQDeviceId) return Promise.resolve(MyQDeviceId);
 
     return this.getDeviceList(options).then(devices => {
-      const withoutGateways = _.reject(devices, {MyQDeviceTypeId: GATEWAY_ID});
-      const ids = _.map(withoutGateways, 'MyQDeviceId');
-      const {0: MyQDeviceId, length} = ids;
-      if (length === 0) throw new Error('No controllable devices found');
+      const withoutGateways = _.reject(devices, {device_type: 'hub'});
+      const ids = _.map(withoutGateways, 'serial_number');
+      if (ids.length === 0)  throw new Error('No controllable devices found');
 
-      if (length === 1) {
-        this.options = _.extend({}, this.options, {MyQDeviceId});
-        return MyQDeviceId;
+      if (ids.length === 1) {
+        this.options = _.extend({}, this.options, {MyQDeviceId: ids[0]});
+        return ids[0];
       }
 
       throw new Error(`Multiple controllable devices found: ${ids.join(', ')}`);
@@ -88,42 +116,44 @@ module.exports = class {
     });
   }
 
-  getSecurityTokenAndMyQDeviceId(options = {}) {
+  getSecurityTokenAccountIdAndMyQDeviceId(options = {}) {
     return this.maybeRetry(() =>
       this.getSecurityToken(options).then(SecurityToken =>
-        this.getDeviceId(options).then(MyQDeviceId => ({
-          SecurityToken,
-          MyQDeviceId
-        }))
+        this.getAccountId(options).then(AccountId =>
+          this.getDeviceId(options).then(MyQDeviceId => ({
+            SecurityToken,
+            AccountId,
+            MyQDeviceId
+          }))
+        )
       )
     );
   }
 
   getDeviceAttribute(options = {}) {
-    const {name: AttributeName} = options;
+    const {name} = options;
     return this.maybeRetry(() =>
-      this.getSecurityTokenAndMyQDeviceId(options).then(
-        ({SecurityToken, MyQDeviceId}) =>
+      this.getSecurityTokenAccountIdAndMyQDeviceId(options).then(
+        ({SecurityToken, AccountId, MyQDeviceId}) =>
           req({
             method: 'GET',
-            pathname: '/api/v4/DeviceAttribute/GetDeviceAttribute',
+            pathname: '/api/v5/accounts/' + AccountId + '/devices/' + MyQDeviceId,
             headers: {SecurityToken},
-            query: {AttributeName, MyQDeviceId}
-          }).then(({AttributeValue}) => AttributeValue)
+          }).then(({state}) => state[name])
       )
     );
   }
 
-  setDeviceAttribute(options = {}) {
-    const {name: AttributeName, value: AttributeValue} = options;
+  actOnDevice(options = {}) {
+    const {action_type} = options;
     return this.maybeRetry(() =>
-      this.getSecurityTokenAndMyQDeviceId(options).then(
-        ({SecurityToken, MyQDeviceId}) =>
+      this.getSecurityTokenAccountIdAndMyQDeviceId(options).then(
+        ({SecurityToken, AccountId, MyQDeviceId}) =>
           req({
             method: 'PUT',
-            pathname: '/api/v4/DeviceAttribute/PutDeviceAttribute',
-            headers: {SecurityToken},
-            body: {AttributeName, AttributeValue, MyQDeviceId}
+            pathname: '/api/v5.1/Accounts/' + AccountId + '/Devices/' + MyQDeviceId + '/actions',
+            body: {action_type},
+            headers: {SecurityToken}
           })
       )
     );
