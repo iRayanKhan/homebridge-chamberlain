@@ -2,6 +2,8 @@
 
 A Homebridge plugin for Chamberlain garage door openers with MyQ.
 
+If you experience any issues please see the [common issues](https://github.com/caseywebdev/homebridge-chamberlain/wiki/Common-Issues) page, before opening an issue.
+
 First set up your mychamberlain.com account, then add to your `config.json` in
 the `accessories` array:
 
