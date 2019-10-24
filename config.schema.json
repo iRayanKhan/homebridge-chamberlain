@@ -1,0 +1,34 @@
+{
+  "pluginAlias": "Chamberlain",
+  "pluginType": "accessory",
+  "singular": false,
+  "footerDisplay": "If you have multiple garage doors, the plugin will throw an error and list the controllable device IDs. Use those IDs to create individual accessories. Be sure to uniquely name each door.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Garage Door",
+        "required": true
+      },
+      "username": {
+        "title": "Email",
+        "type": "string",
+        "required": true,
+        "description": "Your MyChamberlain.com email."
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true,
+        "description": "Your MyChamberlain.com password."
+      },
+      "deviceId": {
+        "title": "Device ID",
+        "type": "string",
+        "description": "For a single door, the Device ID will be autodetected."
+      }
+    }
+  }
+}
