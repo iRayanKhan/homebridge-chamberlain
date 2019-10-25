@@ -1,4 +1,5 @@
 # Config
+Note: Run Homebridge with the deviceID's blank to generate the ID's.
 ```json
 {
   "accessory": "Chamberlain",
