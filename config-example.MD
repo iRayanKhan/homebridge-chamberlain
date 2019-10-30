@@ -1,5 +1,6 @@
 # Config
 Note: Run Homebridge with the deviceID's blank to generate the ID's.
+If you get multiple ID's or it says it's invalid, use the one with CG.
 ```json
 {
   "accessory": "Chamberlain",
