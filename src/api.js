@@ -14,7 +14,7 @@ const req = ({body, headers, method, pathname, query}) =>
     body: body == null ? body : JSON.stringify(body),
     headers: _.extend({
       'Content-Type': 'application/json',
-      'User-Agent': 'Chamberlain/10482 CFNetwork/978.0.7 Darwin/18.6.0',
+      'User-Agent': 'myQ/14041 CFNetwork/1107.1 Darwin/19.0.0',
       ApiVersion: '4.1',
       BrandId: '2',
       Culture: 'en',
