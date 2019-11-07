@@ -109,7 +109,7 @@ module.exports = class {
 
   maybeRetry(fn) {
     return fn().catch(er => {
-      if (er.message.indexOf('Please login again') === -1) throw er;
+      if (er.message.indexOf('Security Token has expired') === -1) throw er;
 
       this.options = _.omit(this.options, 'SecurityToken');
       return fn();
