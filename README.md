@@ -1,8 +1,8 @@
 # homebridge-chamberlain
 
 
-[![npm](https://img.shields.io/npm/v/homebridge-chamberlain)](https://www.npmjs.com/homebridge-chamberlain)
 
+[![NPM](https://nodei.co/npm/homebridge-chamberlain.png?downloads=true&downloadRank=true&stars=true)]
 
 A Homebridge plugin for Chamberlain garage door openers with MyQ.
 
