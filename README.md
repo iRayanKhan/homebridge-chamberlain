@@ -2,7 +2,7 @@
 
 
 
-[![NPM](https://nodei.co/npm/homebridge-chamberlain.png?downloads=true&downloadRank=true&stars=true)]
+![NPM](https://nodei.co/npm/homebridge-chamberlain.png?downloads=true&downloadRank=true&stars=true)
 
 A Homebridge plugin for Chamberlain garage door openers with MyQ.
 
