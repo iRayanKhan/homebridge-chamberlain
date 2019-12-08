@@ -1,6 +1,6 @@
 ---
-name: 
-about: 
+name: Bug Report
+about: If something isn't going as expected, file an issue here.
 title: Issue Name
 labels: bug
 assignees: iRayanKhan

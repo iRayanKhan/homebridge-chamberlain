@@ -1,6 +1,6 @@
 ---
-name: 
-about: 
+name: Feature Request
+about: Describe what you would like to be added
 title: Feature Name Here
 labels: featureRequest
 assignees: iRayanKhan
