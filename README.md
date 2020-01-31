@@ -1,4 +1,8 @@
 # homebridge-chamberlain
+> Code in this branch is not guaranteed to work.
+>> I recommend making a new HomeKit home, and a new HomeBridge instance to test these changes.
+>>> This branch is focusing on fixing notifications not delivering and migrating fully to the V5.1 Api
+
 
 
 
