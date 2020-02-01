@@ -17,6 +17,17 @@ module.exports = class {
     this.apiToHap = {
       'open': CurrentDoorState.OPEN,
       'closed': CurrentDoorState.CLOSED,
+      // Legacy Values (leaving in case this is a defect with MyQ API)
+      1: CurrentDoorState.OPEN,
+      4: CurrentDoorState.OPENING,
+      5: CurrentDoorState.CLOSING,
+      // This one is unchanged
+      2: CurrentDoorState.CLOSED,
+      // New state for OPEN
+      9: CurrentDoorState.OPEN,
+      // API no longer supports state of OPENING/CLOSING
+      // Spotted by TXase
+      0: -1
     };
 
     this.hapToApi = {
@@ -59,11 +70,17 @@ module.exports = class {
           service
             .getCharacteristic(Characteristic.TargetDoorState)
             .on('set', this.setTargetDoorState.bind(this))
-            .on('change', this.logChange.bind(this, 'desireddoorstate'))
+            .on('change', this.logChange.bind(this, 'desireddoorstate')),
+            closeerrorstate:
+            service
+            .getCharacteristic(Characteristic.ObstructionDetected)
+            .on('get', this.getCloseErrorState.bind(this))
+            .on('change', this.logChange.bind(this, 'closeerrorstate'))
       };
 
       this.states.doorstate.value = CurrentDoorState.CLOSED;
       this.states.desireddoorstate.value = TargetDoorState.CLOSED;
+      this.states.closeerrorstate.value = false;
 
       (this.poll = this.poll.bind(this))();
     }
@@ -72,10 +89,13 @@ module.exports = class {
 
   poll() {
     clearTimeout(this.pollTimeoutId);
-    const {doorstate, desireddoorstate} = this.states;
-    return new Promise((resolve, reject) =>
-      doorstate.getValue(er => er ? reject(er) : resolve())
-    ).then(() =>
+    const {doorstate, desireddoorstate, closeerrorstate} = this.states;
+    return Promise.all([
+      new Promise((resolve, reject) =>
+        doorstate.getValue(er => er ? reject(er) : resolve())),
+      new Promise((resolve, reject) =>
+        closeerrorstate.getValue(er => er ? reject(er) : resolve()))
+    ]).then(() =>
       doorstate.value !== desireddoorstate.value ? ACTIVE_DELAY : IDLE_DELAY
     ).catch(_.noop).then((delay = IDLE_DELAY) => {
       clearTimeout(this.pollTimeoutId);
@@ -105,13 +125,30 @@ module.exports = class {
   getCurrentDoorState(cb) {
     return this.api.getDeviceAttribute({name: 'door_state'})
       .then(value =>{
-        cb(null, this.apiToHap[value])
+        let hapValue = this.apiToHap[value];
+        if(hapValue === -1) {
+          hapValue = (this.targetDoorState === 1)? this.apiToHap[4] : this.apiToHap[5]
+        }
+        cb(null, hapValue);
       })
       .catch(this.getErrorHandler(cb));
   }
 
+
+
+
+
+
   setTargetDoorState(value, cb) {
     if (this.reactiveSetTargetDoorState) return cb();
+
+
+
+    if (this.states.closeerrorstate.value) {
+      this.log.error('Cannot close door because it is obstructed');
+      cb(new Error('Cannot close door because it is obstructed'));
+      return;
+    }
 
     const action_type = this.hapToApi[value];
     this.targetDoorState = value;
@@ -125,6 +162,7 @@ module.exports = class {
       .catch(this.getErrorHandler(cb));
   }
 
+
   getCurrentLightState(cb) {
     return this.api.getDeviceAttribute({name: 'lightstate'})
       .then(value => cb(null, this.apiToHap[value?0:1]))
@@ -136,6 +174,13 @@ module.exports = class {
     return this.api.setDeviceAttribute({name: 'desiredlightstate', value})
       .then(() => {
         cb();
+      })
+      .catch(this.getErrorHandler(cb));
+  }
+  getCloseErrorState(cb) {
+    return this.api.getDeviceAttribute({name: 'isunattendedcloseallowed'})
+      .then(value => {
+        cb(null, value === '0');
       })
       .catch(this.getErrorHandler(cb));
   }
