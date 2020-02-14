@@ -15,10 +15,10 @@ const req = ({body, headers, method, pathname, query}) =>
     headers: _.extend({
       'Content-Type': 'application/json',
       'User-Agent': 'myQ/14041 CFNetwork/1107.1 Darwin/19.0.0',
-      ApiVersion: '4.1',
-      BrandId: '2',
-      Culture: 'en',
-      MyQApplicationId
+      'ApiVersion': '5.1',
+      'BrandId': '2',
+      'Culture': 'en',
+      'MyQApplicationId': MyQApplicationId
     }, headers),
     method
   }).then((res) => {
@@ -137,7 +137,7 @@ module.exports = class {
         ({SecurityToken, AccountId, MyQDeviceId}) =>
           req({
             method: 'GET',
-            pathname: '/api/v5/accounts/' + AccountId + '/devices/' + MyQDeviceId,
+            pathname: '/api/v5.1/Accounts/' + AccountId + '/Devices/' + MyQDeviceId,
             headers: {SecurityToken},
           }).then(({state}) => state[name])
       )
