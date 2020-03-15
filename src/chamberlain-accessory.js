@@ -6,8 +6,9 @@ const ACTIVE_DELAY = 1000 * 2;
 const IDLE_DELAY = 1000 * 10;
 
 module.exports = class {
-  constructor(log, {deviceId, name, password, username}) {
+  constructor(log, {deviceId, name, password, username, isLight}) {
     this.log = log;
+    this.isLight = isLight;
     this.api = new Api({MyQDeviceId: deviceId, password, username});
 
     const {Service, Characteristic} = instance.homebridge.hap;
@@ -37,25 +38,37 @@ module.exports = class {
       [CurrentDoorState.CLOSING]: TargetDoorState.CLOSED
     };
 
-    const service = this.service = new Service.GarageDoorOpener(name);
 
-    this.states = {
-      doorstate:
-        service
-          .getCharacteristic(Characteristic.CurrentDoorState)
-          .on('get', this.getCurrentDoorState.bind(this))
-          .on('change', this.logChange.bind(this, 'doorstate')),
-      desireddoorstate:
-        service
-          .getCharacteristic(Characteristic.TargetDoorState)
-          .on('set', this.setTargetDoorState.bind(this))
-          .on('change', this.logChange.bind(this, 'desireddoorstate'))
-    };
+    if (this.isLight) {
+      const service = this.service = new Service.Switch(name);
 
-    this.states.doorstate.value = CurrentDoorState.CLOSED;
-    this.states.desireddoorstate.value = TargetDoorState.CLOSED;
+      service
+        .getCharacteristic(Characteristic.On)
+          .on('get', this.getCurrentLightState.bind(this))
+          .on('set', this.setTargetLightState.bind(this));
 
-    (this.poll = this.poll.bind(this))();
+    } else {
+      const service = this.service = new Service.GarageDoorOpener(name);
+
+      this.states = {
+        doorstate:
+          service
+            .getCharacteristic(Characteristic.CurrentDoorState)
+            .on('get', this.getCurrentDoorState.bind(this))
+            .on('change', this.logChange.bind(this, 'doorstate')),
+        desireddoorstate:
+          service
+            .getCharacteristic(Characteristic.TargetDoorState)
+            .on('set', this.setTargetDoorState.bind(this))
+            .on('change', this.logChange.bind(this, 'desireddoorstate'))
+      };
+
+      this.states.doorstate.value = CurrentDoorState.CLOSED;
+      this.states.desireddoorstate.value = TargetDoorState.CLOSED;
+
+      (this.poll = this.poll.bind(this))();
+    }
+
   }
 
   poll() {
@@ -93,7 +106,7 @@ module.exports = class {
   getCurrentDoorState(cb) {
     return this.api.getDeviceAttribute({name: 'door_state'})
       .then(value =>{
-        cb(null, this.apiToHap[value])  
+        cb(null, this.apiToHap[value])
       })
       .catch(this.getErrorHandler(cb));
   }
@@ -113,6 +126,20 @@ module.exports = class {
       .catch(this.getErrorHandler(cb));
   }
 
+  getCurrentLightState(cb) {
+    return this.api.getDeviceAttribute({name: 'lightstate'})
+      .then(value => cb(null, this.apiToHap[value?0:1]))
+      .catch(this.getErrorHandler(cb));
+  }
+
+  setTargetLightState(value, cb) {
+    value = this.hapToApi[value?0:1];
+    return this.api.setDeviceAttribute({name: 'desiredlightstate', value})
+      .then(() => {
+        cb();
+      })
+      .catch(this.getErrorHandler(cb));
+  }
   getServices() {
     return [this.service];
   }
