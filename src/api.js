@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const url = require('url');
 
 const MyQApplicationId =
-  'Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i';
+'Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB/i';
 const protocol = 'https:';
 const host = 'api.myqdevice.com';
 
@@ -49,7 +49,7 @@ module.exports = class {
     return req({
       method: 'POST',
       pathname: '/api/v5/Login',
-      body: {Password: password, UserName: username}
+      body: {password, username}
     }).then(({SecurityToken}) => {
       this.options = _.extend({}, this.options, {SecurityToken});
       return SecurityToken;
@@ -109,7 +109,7 @@ module.exports = class {
 
   maybeRetry(fn) {
     return fn().catch(er => {
-      if (er.message.indexOf('Security Token has expired') === -1) throw er;
+      if (er.message.indexOf('Please login again') === -1) throw er;
 
       this.options = _.omit(this.options, 'SecurityToken');
       return fn();
@@ -159,3 +159,36 @@ module.exports = class {
     );
   }
 };
+/*
+  getDeviceAttribute(options = {}) {
+    const {name: AttributeName} = options;
+    return this.maybeRetry(() =>
+      this.getSecurityTokenAndMyQDeviceId(options).then(
+        ({SecurityToken, MyQDeviceId}) =>
+          req({
+            method: 'GET',
+            pathname: '/api/v4/DeviceAttribute/GetDeviceAttribute',
+            headers: {SecurityToken},
+            query: {AttributeName, MyQDeviceId}
+          }).then(({AttributeValue}) => AttributeValue)
+      )
+    );
+  }
+*/
+/*
+  setDeviceAttribute(options = {}) {
+    const {name: AttributeName, value: AttributeValue} = options;
+    return this.maybeRetry(() =>
+      this.getSecurityTokenAndMyQDeviceId(options).then(
+        ({SecurityToken, MyQDeviceId}) =>
+          req({
+            method: 'PUT',
+            pathname: '/api/v4/DeviceAttribute/PutDeviceAttribute',
+            headers: {SecurityToken},
+            body: {AttributeName, AttributeValue, MyQDeviceId}
+          })
+      )
+    );
+  }
+};
+*/
