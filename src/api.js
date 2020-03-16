@@ -175,7 +175,7 @@ module.exports = class {
     );
   }
 */
-/*
+
   setDeviceAttribute(options = {}) {
     const {name: AttributeName, value: AttributeValue} = options;
     return this.maybeRetry(() =>
@@ -191,4 +191,4 @@ module.exports = class {
     );
   }
 };
-*/
+
