@@ -1,18 +1,18 @@
 {
   "name": "homebridge-chamberlain",
-  "version": "1.0.7",
-  "author": "Casey Foster <c@sey.me>",
+  "version": "1.3.0",
+  "author": "Rayan Khan <rayankhan04@icloud.com>",
   "license": "MIT",
   "main": "src",
   "repository": {
     "type": "git",
-    "url": "https://github.com/caseywebdev/homebridge-chamberlain"
+    "url": "https://github.com/iRayanKhan/homebridge-chamberlain"
   },
   "keywords": [
     "homebridge-plugin"
   ],
   "dependencies": {
-    "node-fetch": "1",
+    "node-fetch": "2",
     "underscore": "1.8.3"
   },
   "engines": {
