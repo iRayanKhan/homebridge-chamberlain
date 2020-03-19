@@ -158,7 +158,7 @@ module.exports = class {
       )
     );
   }
-};
+
 /*
   getDeviceAttribute(options = {}) {
     const {name: AttributeName} = options;
