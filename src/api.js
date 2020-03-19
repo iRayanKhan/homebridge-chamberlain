@@ -115,6 +115,17 @@ module.exports = class {
       return fn();
     });
   }
+  
+  getSecurityTokenAndMyQDeviceId(options = {}) {
+    return this.maybeRetry(() =>
+      this.getSecurityToken(options).then(SecurityToken =>
+        this.getDeviceId(options).then(MyQDeviceId => ({
+          SecurityToken,
+          MyQDeviceId
+        }))
+      )
+    );
+  }
 
   getSecurityTokenAccountIdAndMyQDeviceId(options = {}) {
     return this.maybeRetry(() =>
@@ -159,7 +170,7 @@ module.exports = class {
     );
   }
 
-/*
+
   getDeviceAttribute(options = {}) {
     const {name: AttributeName} = options;
     return this.maybeRetry(() =>
@@ -174,7 +185,7 @@ module.exports = class {
       )
     );
   }
-*/
+
 
   setDeviceAttribute(options = {}) {
     const {name: AttributeName, value: AttributeValue} = options;
