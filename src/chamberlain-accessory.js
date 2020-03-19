@@ -3,7 +3,7 @@ const Api = require('./api');
 const instance = require('./instance');
 
 const ACTIVE_DELAY = 1000 * 2;
-const IDLE_DELAY = 1000 * 10;
+const IDLE_DELAY = 1000 * 30;
 
 module.exports = class {
   constructor(log, {deviceId, name, password, username}) {
@@ -78,7 +78,7 @@ module.exports = class {
 
     if (name === 'doorstate') {
       this.reactiveSetTargetDoorState = true;
-      this.states.desireddoorstate.setValue(this.currentToTarget[newValue]);
+      this.states.desireddoorstate.updateValue(this.currentToTarget[newValue]);
       delete this.reactiveSetTargetDoorState;
     }
   }
