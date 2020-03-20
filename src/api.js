@@ -116,16 +116,7 @@ module.exports = class {
     });
   }
   
-  getSecurityTokenAndMyQDeviceId(options = {}) {
-    return this.maybeRetry(() =>
-      this.getSecurityToken(options).then(SecurityToken =>
-        this.getDeviceId(options).then(MyQDeviceId => ({
-          SecurityToken,
-          MyQDeviceId
-        }))
-      )
-    );
-  }
+ 
 
   getSecurityTokenAccountIdAndMyQDeviceId(options = {}) {
     return this.maybeRetry(() =>
