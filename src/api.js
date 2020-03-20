@@ -171,20 +171,7 @@ module.exports = class {
   }
 
 
-  getDeviceAttribute(options = {}) {
-    const {name: AttributeName} = options;
-    return this.maybeRetry(() =>
-      this.getSecurityTokenAndMyQDeviceId(options).then(
-        ({SecurityToken, MyQDeviceId}) =>
-          req({
-            method: 'GET',
-            pathname: '/api/v4/DeviceAttribute/GetDeviceAttribute',
-            headers: {SecurityToken},
-            query: {AttributeName, MyQDeviceId}
-          }).then(({AttributeValue}) => AttributeValue)
-      )
-    );
-  }
+ 
 
 
   setDeviceAttribute(options = {}) {
@@ -194,7 +181,7 @@ module.exports = class {
         ({SecurityToken, MyQDeviceId}) =>
           req({
             method: 'PUT',
-            pathname: '/api/v4/DeviceAttribute/PutDeviceAttribute',
+            pathname: '/api/v5/DeviceAttribute/PutDeviceAttribute',
             headers: {SecurityToken},
             body: {AttributeName, AttributeValue, MyQDeviceId}
           })
