@@ -1,6 +1,6 @@
 {
   "name": "homebridge-chamberlain",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "author": "Rayan Khan <rayankhan04@icloud.com>",
   "license": "MIT",
   "main": "src",
