@@ -1,8 +1,11 @@
 # homebridge-chamberlain
 > Homebridge plugin for MyQ garage doors.
 
-[![npm](https://img.shields.io/npm/v/homebridge-chamberlain?style=for-the-badge)](https://www.npmjs.com/package/homebridge-chamberlain)
-[![npm](https://img.shields.io/npm/dt/homebridge-chamberlain?style=for-the-badge)](https://www.npmjs.com/package/homebridge-chamberlain)
+[![npm](https://badgen.net/npm/v/homebridge-chamberlain/latest)](https://www.npmjs.com/package/homebridge-chamberlain) 
+[![npm](https://badgen.net/npm/dt/homebridge-chamberlain)](https://www.npmjs.com/package/homebridge-chamberlain)
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
+
 
 # Installation
 0) Install Homebridge:   ```sudo npm i -g homebridge --unsafe-perm```
