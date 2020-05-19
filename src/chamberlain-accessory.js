@@ -15,7 +15,7 @@ module.exports = class {
 
     this.apiToHap = {
       'open': CurrentDoorState.OPEN,
-      'closed': CurrentDoorState.CLOSED,
+      'closed': CurrentDoorState.CLOSED
     };
 
     this.hapToApi = {
@@ -93,18 +93,20 @@ module.exports = class {
   getCurrentDoorState(cb) {
     return this.api.getDeviceAttribute({name: 'door_state'})
       .then(value =>{
-        cb(null, this.apiToHap[value])  
+        cb(null, this.apiToHap[value]);
       })
       .catch(this.getErrorHandler(cb));
   }
 
   setTargetDoorState(value, cb) {
-    if (this.reactiveSetTargetDoorState) return cb();
+    if (this.reactiveSetTargetDoorState) {
+      return cb();
+    }
 
-    const action_type = this.hapToApi[value];
+    const actionType = this.hapToApi[value];
     this.targetDoorState = value;
 
-    return this.api.actOnDevice({action_type})
+    return this.api.actOnDevice({actionType})
       .then(() => {
         this.poll();
         this.targetDoorState = null;
