@@ -1,5 +1,5 @@
 const _ = require('underscore');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch-retry');
 const url = require('url');
 
 const MyQApplicationId =
@@ -18,7 +18,8 @@ const req = ({body, headers, method, pathname, query}) =>
       Culture: 'en',
       MyQApplicationId
     }, headers),
-    method
+    method,
+    retry: 3
   }).then((res) => {
     if (res.status < 200 || res.status >= 300) {
       return res.text().then(body => {

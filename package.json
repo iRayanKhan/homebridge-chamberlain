@@ -13,6 +13,7 @@
   ],
   "dependencies": {
     "node-fetch": "2",
+    "node-fetch-retry": "^1.0.1",
     "underscore": "1.10.2"
   },
   "engines": {
