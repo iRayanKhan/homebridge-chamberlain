@@ -7,8 +7,6 @@ const MyQApplicationId =
 const protocol = 'https:';
 const host = 'api.myqdevice.com';
 
-const GATEWAY_ID = 1;
-
 const req = ({body, headers, method, pathname, query}) =>
   fetch(url.format({host, pathname, protocol, query}), {
     body: body == null ? body : JSON.stringify(body),
