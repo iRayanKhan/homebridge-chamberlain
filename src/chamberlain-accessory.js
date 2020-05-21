@@ -57,8 +57,14 @@ module.exports = class {
           .on('change', this.logChange.bind(this, 'desireddoorstate'))
     };
 
-    this.states.doorstate.value = CurrentDoorState.CLOSED;
-    this.states.desireddoorstate.value = TargetDoorState.CLOSED;
+    this.storage = require('node-persist');
+    this.storage.initSync({
+        dir: instance.homebridge.user.persistPath(),
+        forgiveParseErrors: true
+    });
+
+    this.states.doorstate.value = this.storage.getItemSync(name) || CurrentDoorState.CLOSED;
+    this.states.desireddoorstate.value = this.states.doorstate.value;
 
     (this.poll = this.poll.bind(this))();
   }
@@ -82,6 +88,7 @@ module.exports = class {
     this.log.info(`${name} changed from ${from} to ${to}`);
 
     if (name === 'doorstate') {
+      this.storage.setItemSync(name, newValue);
       this.reactiveSetTargetDoorState = true;
       this.states.desireddoorstate.updateValue(this.currentToTarget[newValue]);
       delete this.reactiveSetTargetDoorState;
