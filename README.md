@@ -1,5 +1,6 @@
-# homebridge-chamberlain
-> Homebridge plugin for MyQ garage doors.
+<p align="center">
+    <img src="https://github.com/iRayanKhan/Assets-Repo/blob/master/Chamberlain-Plugin-Branding.png?raw=true" alt="BrandingLogo" width="400” maxHeight="91" />
+</p>
 
 [![npm](https://badgen.net/npm/v/homebridge-chamberlain/latest)](https://www.npmjs.com/package/homebridge-chamberlain) 
 [![npm](https://badgen.net/npm/dt/homebridge-chamberlain)](https://www.npmjs.com/package/homebridge-chamberlain)
