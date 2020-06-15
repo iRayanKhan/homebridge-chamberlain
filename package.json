@@ -21,7 +21,8 @@
     "axios": "^0.19.2"
   },
   "engines": {
-    "homebridge": "x"
+    "node": ">=10.17.0",
+    "homebridge": ">0.4.53"
   },
   "devDependencies": {
     "@types/node": "^14.0.11",
