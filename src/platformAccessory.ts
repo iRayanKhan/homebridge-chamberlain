@@ -1,13 +1,13 @@
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 
-import { ExampleHomebridgePlatform } from './platform';
+import { ChamberlainHomebridgePlatform } from './platform';
 
 /**
  * Platform Accessory
  * An instance of this class is created for each accessory your platform registers
  * Each accessory may expose multiple services of different service types.
  */
-export class ExamplePlatformAccessory {
+export class ChamberlainPlatformAccessory {
   private service: Service;
 
   /**
@@ -20,7 +20,7 @@ export class ExamplePlatformAccessory {
   }
 
   constructor(
-    private readonly platform: ExampleHomebridgePlatform,
+    private readonly platform: ChamberlainHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
 
@@ -58,7 +58,7 @@ export class ExamplePlatformAccessory {
     // Example showing how to update the state of a Characteristic asynchronously instead
     // of using the `on('get')` handlers.
     //
-    // Here we change update the brightness to a random value every 5 seconds using 
+    // Here we change update the brightness to a random value every 5 seconds using
     // the `updateCharacteristic` method.
     setInterval(() => {
       // assign the current brightness a random value between 0 and 100
@@ -89,10 +89,10 @@ export class ExamplePlatformAccessory {
   /**
    * Handle the "GET" requests from HomeKit
    * These are sent when HomeKit wants to know the current state of the accessory, for example, checking if a Light bulb is on.
-   * 
+   *
    * GET requests should return as fast as possbile. A long delay here will result in
    * HomeKit being unresponsive and a bad user experience in general.
-   * 
+   *
    * If your device takes time to respond you should update the status of your device
    * asynchronously instead using the `updateCharacteristic` method instead.
 
