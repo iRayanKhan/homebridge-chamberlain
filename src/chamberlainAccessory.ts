@@ -28,22 +28,19 @@ export class ChamberlainAccessory {
 
   private FAKE_GARAGE = {
     opened: false,
-    open: async (cb: any) => {
+    open: async (callback: () => void) => {
       console.log('Opening the Garage!');
-      //add your code here which allows the garage to open
-      // this.FAKE_GARAGE.opened = true;
       const result = await this.chamberlainService.open();
       console.log('Done waiting for - Opening the Garage!');
       this.FAKE_GARAGE.opened = result;
-      cb();
+      callback();
     },
-    close: async (cb: any) => {
+    close: async (callback: () => void) => {
       console.log('Closing the Garage!');
-      //add your code here which allows the garage to close
       const result = await this.chamberlainService.close();
       console.log('Done waiting for - Closing the Garage!');
       this.FAKE_GARAGE.opened = result;
-      cb();
+      callback();
     },
     identify: () => {
       //add your code here which allows the garage to be identified
