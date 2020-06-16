@@ -28,21 +28,22 @@ export class ChamberlainAccessory {
 
   private FAKE_GARAGE = {
     opened: false,
-    open: async () => {
+    open: async (fn: any) => {
       console.log('Opening the Garage!');
       //add your code here which allows the garage to open
       // this.FAKE_GARAGE.opened = true;
       const result = await this.chamberlainService.open();
       console.log('Done waiting for - Opening the Garage!');
       this.FAKE_GARAGE.opened = result;
-
+      fn();
     },
-    close: async () => {
+    close: async (fn: any) => {
       console.log('Closing the Garage!');
       //add your code here which allows the garage to close
       const result = await this.chamberlainService.close();
       console.log('Done waiting for - Closing the Garage!');
       this.FAKE_GARAGE.opened = result;
+      fn();
     },
     identify: () => {
       //add your code here which allows the garage to be identified
@@ -51,7 +52,7 @@ export class ChamberlainAccessory {
     status: () =>{
       //use this section to get sensor values. set the boolean FAKE_GARAGE.opened with a sensor value.
       console.log('Sensor queried!');
-      //FAKE_GARAGE.opened = true/false;
+      this.FAKE_GARAGE.opened = true;
     },
   };
 
@@ -96,15 +97,15 @@ export class ChamberlainAccessory {
    */
   setTargetDoorState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
-      this.FAKE_GARAGE.close();
+      this.FAKE_GARAGE.close(() => this.service
+        .setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED));
+      this.platform.log.debug('callback close');
       callback();
-      this.service
-        .setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED);
     } else if (value === this.platform.Characteristic.TargetDoorState.OPEN) {
-      this.FAKE_GARAGE.open();
+      this.FAKE_GARAGE.open(() => this.service
+        .setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.OPEN));
+      this.platform.log.debug('callback open');
       callback();
-      this.service
-        .setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.OPEN);
     }
   }
 
