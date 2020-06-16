@@ -62,7 +62,17 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
       // something globally unique, but constant, for example, the device serial
       // number or MAC address
       if(!device.deviceId){
-        this.log.error('No deviceId found');
+        this.log.error('No deviceId found in your config.json - see config.schema.json');
+        return;
+      }
+
+      if(!device.username){
+        this.log.error('No username found in your config.json - see config.schema.json');
+        return;
+      }
+
+      if(!device.password){
+        this.log.error('No password found in your config.json - see config.schema.json');
         return;
       }
 

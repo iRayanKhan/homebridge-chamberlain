@@ -1,0 +1,59 @@
+{
+  "Users": { "href": "http://api.myqdevice.com/api/v5/My/Users" },
+  "Admin": false,
+  "Account": {
+    "href": "http://api.myqdevice.com/api/v5/Accounts/<ID>",
+    "Id": "<ID>",
+    "Name": "SOME NAME",
+    "Email": "email@sample.com",
+    "Address": {
+      "AddressLine1": "AddressLine1",
+      "AddressLine2": "",
+      "City": "City",
+      "PostalCode": "ZIP",
+      "Country": "[Object]"
+    },
+    "Phone": "123-456-7890",
+    "ContactName": "CONTACT NAME",
+    "DirectoryCodeLength": 0,
+    "UserAllowance": 4,
+    "TimeZone": "America/Chicago",
+    "Devices": {
+      "href": "http://api.myqdevice.com/api/v5/Accounts/<ID>/Devices"
+    },
+    "Users": {
+      "href": "http://api.myqdevice.com/api/v5/Accounts/<ID>/Users"
+    },
+    "AccessGroups": {
+      "href": "http://api.myqdevice.com/api/v5/Accounts/<ID>/AccessGroups"
+    },
+    "Roles": {
+      "href": "http://api.myqdevice.com/api/v5/Accounts/<ID>/Roles"
+    },
+    "AccessSchedules": {
+      "href": "http://api.myqdevice.com/api/v5/Accounts/<ID>/AccessSchedules"
+    },
+    "Zones": {
+      "href": "http://api.myqdevice.com/api/v5/Accounts/<ID>/Zones"
+    }
+  },
+  "AnalyticsId": "<UUID>",
+  "UserId": "<ID>",
+  "UserName": "email@sample.com",
+  "Email": "email@sample.com",
+  "FirstName": "FirstName",
+  "LastName": "LastName",
+  "CultureCode": "en",
+  "Address": {
+    "AddressLine1": "AddressLine1",
+    "AddressLine2": "",
+    "City": "City",
+    "PostalCode": "ZIP",
+    "Country": "[Object]"
+  },
+  "TimeZone": { "Id": "America/Chicago", "Name": "America/Chicago" },
+  "MailingListOptIn": true,
+  "RequestAccountLinkInfo": false,
+  "Phone": "123-456-7890",
+  "DiagnosticDataOptIn": true
+}

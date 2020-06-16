@@ -28,28 +28,31 @@ export class ChamberlainAccessory {
 
   private FAKE_GARAGE = {
     opened: false,
-    open: async (callback: () => void) => {
+    open: async (callback: (status:boolean) => void) => {
       console.log('Opening the Garage!');
       const result = await this.chamberlainService.open();
       console.log('Done waiting for - Opening the Garage!');
-      this.FAKE_GARAGE.opened = result;
-      callback();
+      // this.FAKE_GARAGE.opened = result;
+      callback(result);
     },
-    close: async (callback: () => void) => {
+    close: async (callback: (status:boolean) => void) => {
       console.log('Closing the Garage!');
       const result = await this.chamberlainService.close();
       console.log('Done waiting for - Closing the Garage!');
-      this.FAKE_GARAGE.opened = result;
-      callback();
+      // this.FAKE_GARAGE.opened = result;
+      callback(result);
     },
     identify: () => {
       //add your code here which allows the garage to be identified
       console.log('Identify the Garage');
     },
-    status: () =>{
+    status: async (callback: (status:boolean) => void) =>{
       //use this section to get sensor values. set the boolean FAKE_GARAGE.opened with a sensor value.
-      console.log('Sensor queried!');
-      this.FAKE_GARAGE.opened = true;
+      console.log('Status queried!');
+      // this.FAKE_GARAGE.opened = false;
+      const result = await this.chamberlainService.status();
+      // this.FAKE_GARAGE.opened = result;
+      callback(result);
     },
   };
 
@@ -94,19 +97,18 @@ export class ChamberlainAccessory {
    */
   setTargetDoorState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
-      const closedFunc = () => {
+      const closedCallback = () => {
         this.service.setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED);
         this.platform.log.debug('callback close');
         callback();
         this.platform.log.debug('callback close done');
-
       };
 
-      this.FAKE_GARAGE.close(closedFunc);
+      this.FAKE_GARAGE.close(closedCallback);
       this.platform.log.debug('done setTargetDoorState closing');
 
     } else if (value === this.platform.Characteristic.TargetDoorState.OPEN) {
-      const openFunc = () => {
+      const openCallback = () => {
         this.service.setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.OPEN);
         this.platform.log.debug('callback open');
         callback();
@@ -114,9 +116,8 @@ export class ChamberlainAccessory {
 
       };
 
-      this.FAKE_GARAGE.open(openFunc);
+      this.FAKE_GARAGE.open(openCallback);
       this.platform.log.debug('done setTargetDoorState opening');
-
     }
   }
 
@@ -134,15 +135,22 @@ export class ChamberlainAccessory {
    * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
    */
   getCurrentDoorState(callback: CharacteristicGetCallback) {
-    const err = null;
-    this.FAKE_GARAGE.status();
+    const statusCallback = (status: boolean) => {
+      console.log(`status: ${status}`);
+      this.service.setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED);
+      this.platform.log.debug('callback status');
+      callback();
+      this.platform.log.debug('callback status done');
+    };
 
-    if (this.FAKE_GARAGE.opened) {
-      console.log('Query: Is Garage Open? Yes.');
-      callback(err, this.platform.Characteristic.CurrentDoorState.OPEN);
-    } else {
-      console.log('Query: Is Garage Open? No.');
-      callback(err, this.platform.Characteristic.CurrentDoorState.CLOSED);
-    }
+    this.FAKE_GARAGE.status(statusCallback);
+
+    // if (this.FAKE_GARAGE.opened) {
+    //   console.log('Query: Is Garage Open? Yes.');
+    //   callback(err, this.platform.Characteristic.CurrentDoorState.OPEN);
+    // } else {
+    //   console.log('Query: Is Garage Open? No.');
+    //   callback(err, this.platform.Characteristic.CurrentDoorState.CLOSED);
+    // }
   }
 }
