@@ -36,12 +36,12 @@ export default class ChamberlainService {
   }
 
   public async open(): Promise<boolean>{
-    await this.sleep(5000);
+    await this.sleep(2000);
     return Promise.resolve(true);
   }
 
   public async close(): Promise<boolean>{
-    await this.sleep(5000);
+    await this.sleep(2000);
     return Promise.resolve(false);
   }
 

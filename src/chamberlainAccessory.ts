@@ -28,22 +28,22 @@ export class ChamberlainAccessory {
 
   private FAKE_GARAGE = {
     opened: false,
-    open: async (fn: any) => {
+    open: async (cb: any) => {
       console.log('Opening the Garage!');
       //add your code here which allows the garage to open
       // this.FAKE_GARAGE.opened = true;
       const result = await this.chamberlainService.open();
       console.log('Done waiting for - Opening the Garage!');
       this.FAKE_GARAGE.opened = result;
-      fn();
+      cb();
     },
-    close: async (fn: any) => {
+    close: async (cb: any) => {
       console.log('Closing the Garage!');
       //add your code here which allows the garage to close
       const result = await this.chamberlainService.close();
       console.log('Done waiting for - Closing the Garage!');
       this.FAKE_GARAGE.opened = result;
-      fn();
+      cb();
     },
     identify: () => {
       //add your code here which allows the garage to be identified
@@ -97,15 +97,29 @@ export class ChamberlainAccessory {
    */
   setTargetDoorState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
-      this.FAKE_GARAGE.close(() => this.service
-        .setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED));
-      this.platform.log.debug('callback close');
-      callback();
+      const closedFunc = () => {
+        this.service.setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED);
+        this.platform.log.debug('callback close');
+        callback();
+        this.platform.log.debug('callback close done');
+
+      };
+
+      this.FAKE_GARAGE.close(closedFunc);
+      this.platform.log.debug('done setTargetDoorState closing');
+
     } else if (value === this.platform.Characteristic.TargetDoorState.OPEN) {
-      this.FAKE_GARAGE.open(() => this.service
-        .setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.OPEN));
-      this.platform.log.debug('callback open');
-      callback();
+      const openFunc = () => {
+        this.service.setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.OPEN);
+        this.platform.log.debug('callback open');
+        callback();
+        this.platform.log.debug('callback open done');
+
+      };
+
+      this.FAKE_GARAGE.open(openFunc);
+      this.platform.log.debug('done setTargetDoorState opening');
+
     }
   }
 
