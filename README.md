@@ -6,6 +6,17 @@
 [![npm](https://badgen.net/npm/dt/homebridge-chamberlain)](https://www.npmjs.com/package/homebridge-chamberlain)
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
+<span align="center">
+
+<a href="https://github.com/iRayanKhan/Assets-Repo/blob/master/Chamberlain-Plugin-Branding.png?raw=true"><img alt="homebridge-verified" src="https://github.com/iRayanKhan/Assets-Repo/blob/master/Chamberlain-Plugin-Branding.png?raw=true" width="500px"></a>
+
+# Homebridge-Chamberlain
+
+<a href="https://www.npmjs.com/package/homebridge-chamberlain"><img title="npm version" src="https://badgen.net/npm/v/homebridge-chamberlain" ></a>
+<a href="https://www.npmjs.com/package/homebridge-chamberlain"><img title="npm downloads" src="https://badgen.net/npm/dt/homebridge-chamberlain" ></a>
+<a href="https://github.com/homebridge/homebridge/wiki/Verified-Plugins"><img title="homebridge verification" src="https://badgen.net/badge/homebridge/verified/purple" ></a>
+</span>
+
 
 
 # Installation
