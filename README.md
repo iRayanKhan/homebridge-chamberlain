@@ -1,11 +1,3 @@
-<p align="center">
-    <img src="https://github.com/iRayanKhan/Assets-Repo/blob/master/Chamberlain-Plugin-Branding.png?raw=true" alt="BrandingLogo" width="400” maxHeight="91" />
-</p>
-
-[![npm](https://badgen.net/npm/v/homebridge-chamberlain/latest)](https://www.npmjs.com/package/homebridge-chamberlain) 
-[![npm](https://badgen.net/npm/dt/homebridge-chamberlain)](https://www.npmjs.com/package/homebridge-chamberlain)
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
-
 <span align="center">
 
 <a href="https://github.com/iRayanKhan/Assets-Repo/blob/master/Chamberlain-Plugin-Branding.png?raw=true"><img alt="homebridge-verified" src="https://github.com/iRayanKhan/Assets-Repo/blob/master/Chamberlain-Plugin-Branding.png?raw=true" width="500px"></a>
