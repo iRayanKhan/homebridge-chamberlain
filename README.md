@@ -18,7 +18,13 @@
 # Issues
 If you experience any issues, please check the [common issues page](https://github.com/iRayanKhan/homebridge-chamberlain/wiki/Common-Issues) before opening an issue.
 
+# Development
 
+This starts a server on http://localhost:8000/ you can change the port by running mock-json-server data.json --port=3000.
+
+```bash
+npm run mock
+```
 
 Inspiration from:
 [pymyq](https://github.com/arraylabs/pymyq/blob/master/pymyq/)

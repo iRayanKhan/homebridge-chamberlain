@@ -10,7 +10,8 @@
     "lint": "eslint src/**.ts",
     "watch": "npm run build && npm link && nodemon",
     "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run lint && npm run build"
+    "prepublishOnly": "npm run lint && npm run build",
+    "mock": "cd mock && npx mock-json-server data.json --port=3000"
   },
   "repository": {
     "type": "git",

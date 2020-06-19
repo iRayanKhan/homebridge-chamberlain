@@ -19,9 +19,12 @@ export default class ChamberlainService {
     Culture: this.DEFAULT_CULTURE,
   };
 
-  private URL_AUTH = 'https://api.myqdevice.com/api/v5/Login';
-  private URL_DEVICE_BASE = 'https://api.myqdevice.com/api/v5.1';
-  private URL_MY = 'https://api.myqdevice.com/api/v5/My';
+  // If you are running mock-json-server
+  private URL_BASE = 'http://127.0.0.1:3000/';
+  // private URL_BASE = 'https://api.myqdevice.com';
+  private URL_AUTH = `${this.URL_BASE}/api/v5/Login`;
+  private URL_DEVICE_BASE = `${this.URL_BASE}/api/v5.1`;
+  private URL_MY = `${this.URL_BASE}/api/v5/My`;
 
   /**
   * The static method that controls the access to the singleton instance.
