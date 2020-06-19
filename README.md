@@ -7,6 +7,7 @@
 <a href="https://www.npmjs.com/package/homebridge-chamberlain"><img title="npm version" src="https://badgen.net/npm/v/homebridge-chamberlain" ></a>
 <a href="https://www.npmjs.com/package/homebridge-chamberlain"><img title="npm downloads" src="https://badgen.net/npm/dt/homebridge-chamberlain" ></a>
 <a href="https://github.com/homebridge/homebridge/wiki/Verified-Plugins"><img title="homebridge verification" src="https://badgen.net/badge/homebridge/verified/purple" ></a>
+
 </span>
 
 
