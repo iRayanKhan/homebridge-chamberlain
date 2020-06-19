@@ -1,4 +1,5 @@
 import axios, {AxiosRequestConfig} from 'axios';
+import {MyQDevice, MyQAccount} from './interfaces';
 
 export default class ChamberlainService {
   private static instance: ChamberlainService;
@@ -20,8 +21,9 @@ export default class ChamberlainService {
   };
 
   // If you are running mock-json-server
-  private URL_BASE = 'http://127.0.0.1:3000/';
+  private URL_BASE = 'http://127.0.0.1:3000';
   // private URL_BASE = 'https://api.myqdevice.com';
+
   private URL_AUTH = `${this.URL_BASE}/api/v5/Login`;
   private URL_DEVICE_BASE = `${this.URL_BASE}/api/v5.1`;
   private URL_MY = `${this.URL_BASE}/api/v5/My`;
@@ -45,12 +47,16 @@ export default class ChamberlainService {
      * construction calls with the `new` operator.
      */
   private constructor(){
+    this.myqAccount = {} as MyQAccount;
+    this.myqDevice = {} as MyQDevice;
     this.deviceId = '';
     this.username = '';
     this.password = '';
     this.securityToken = '';
   }
 
+  private myqAccount: MyQAccount;
+  private myqDevice: MyQDevice;
   private deviceId: string;
   private username: string;
   private password: string;
@@ -62,11 +68,15 @@ export default class ChamberlainService {
     this.password = password;
   }
 
+  public async setup(): Promise<boolean>{
+    await this.getAccountId();
+    await this.getDevice();
+    return true;
+  }
+
   public async open(): Promise<boolean>{
     try{
-      //this.securityToken = await this.getSecurityToken();
-      console.log('heres your token: ', this.securityToken);
-
+      await this.sleep(2000);
       return Promise.resolve(true);
     } catch(error){
       console.log('open error: ', error);
@@ -79,25 +89,29 @@ export default class ChamberlainService {
     return Promise.resolve(false);
   }
 
-  public async status(): Promise<boolean>{
+  public async status(): Promise<string>{
     try {
-      const response = await this.axiosRetry('get', `${this.URL_MY}`);
-
-      console.log(JSON.parse(JSON.stringify(response)));
-      return false;
+      const status = await this.getDeviceAttribute('door_state');
+      return status;
     } catch (error) {
       console.log('status error: ', error);
       throw Error(error);
     }
-
-    // "door_state"
-    console.log('state');
-    return Promise.resolve(true);
   }
 
-  private async axiosRetry(method, url, retries = 1, backoff = 300) {
+  private async getDeviceAttribute(attribute: string): Promise<string>{
+    return 'true';
+  }
+
+  private async axiosRetry(method, params = {}, url, retries = 1, backoff = 300) {
+    // The token should check first as its used in all other calls
     if(!this.securityToken){
-      this.securityToken = await this.getSecurityToken();
+      await this.getSecurityToken();
+    }
+
+    // if for some reason (maybe the rist time this was run) the account isnt populated run setup()
+    if(Object.keys(this.myqAccount).length === 0){
+      await this.setup();
     }
 
     const config: AxiosRequestConfig = {
@@ -107,12 +121,8 @@ export default class ChamberlainService {
         ...this.MYQ_HEADERS,
         SecurityToken : this.securityToken,
       },
-      params: {
-        expand: 'account',
-      },
+      params: params,
     };
-
-    console.log('axiosRetry config: ', config);
 
     try{
       const {data}= await axios(config);
@@ -140,13 +150,10 @@ export default class ChamberlainService {
         }
       */
       if(error.response.data === '401'){
-        this.securityToken = '';
-        this.securityToken = await this.getSecurityToken();
-        console.log('new token: ', this.securityToken);
+        await this.getSecurityToken(true);
       }
 
       if (retries > 0) {
-        // if (retries > 0 && retryCodes.includes(res.status)) {
         setTimeout(() => {
           return this.axiosRetry(method, url, retries - 1, backoff * 2);
         }, backoff);
@@ -157,6 +164,7 @@ export default class ChamberlainService {
     }
   }
 
+  // TODO: REMOVE FOR SIMULATING SLOW API ONLY
   private sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -169,12 +177,72 @@ export default class ChamberlainService {
     return `${this.URL_DEVICE_BASE}/Accounts/${accountId}/Devices`;
   }
 
-  private getUrlActions(accountId: string, deviceId: string): string {
-    return `${this.URL_DEVICE_BASE}/Accounts/${accountId}/Devices/${deviceId}/actions`;
+  /**
+   * if the account has not been set up, request from myq and populate myqAccount
+   *
+   * else return the accountId
+   */
+  public async getAccountId(): Promise<string>{
+    try {
+      if(Object.keys(this.myqAccount).length === 0){
+        const params = {expand: 'account'};
+        const response = await this.axiosRetry('get', params, `${this.URL_MY}`);
+        this.myqAccount = response.Account;
+      }
+      return this.myqAccount.Id;
+    } catch (error) {
+      console.log('getAccountId error: ', error);
+      throw Error(error);
+    }
   }
 
-  private async getSecurityToken() {
-    console.log('getSecurityToken');
+  public async getDevice(): Promise<MyQDevice>{
+    try {
+      if(Object.keys(this.myqDevice).length === 0 && this.myqAccount.Id){
+        const response = await this.axiosRetry('get', {}, this.getUrlGetDevices(this.myqAccount.Id));
+        const fullDeviceList = response.items;
+        const filteredDeviceList = this.filterDeviceList(fullDeviceList);
+
+        if (filteredDeviceList.length === 0) {
+          throw new Error('No controllable devices found');
+        }
+
+        if (filteredDeviceList.length === 1) {
+          this.myqDevice = filteredDeviceList[0];
+        } else {
+          throw new Error(`Multiple controllable devices found: ${filteredDeviceList.join(', ')}`);
+        }
+      }
+      return this.myqDevice;
+    } catch (error) {
+      console.log('getDevice error: ', error);
+      throw Error(error);
+    }
+  }
+
+  private filterDeviceList(deviceList: MyQDevice[]){
+    const filteredDevices:MyQDevice[] = deviceList.filter(device => {
+      if(device.state.online === false){
+        return false;
+      }
+
+      if(device.device_type === 'hub'){
+        return false;
+      }
+
+      if(device.device_type === 'ethernetgateway'){
+        return false;
+      }
+
+      return true;
+    });
+    return filteredDevices;
+  }
+
+  private async getSecurityToken(getNew = false) {
+    if(getNew){
+      this.securityToken = '';
+    }
 
     if(this.securityToken){
       // we already have a token

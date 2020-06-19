@@ -46,7 +46,7 @@ export class ChamberlainAccessory {
       //add your code here which allows the garage to be identified
       console.log('Identify the Garage');
     },
-    status: async (callback: (status:boolean) => void) =>{
+    status: async (callback: (status:string) => void) =>{
       //use this section to get sensor values. set the boolean FAKE_GARAGE.opened with a sensor value.
       console.log('Status queried!');
       // this.FAKE_GARAGE.opened = false;
@@ -135,7 +135,7 @@ export class ChamberlainAccessory {
    * this.service.updateCharacteristic(this.platform.Characteristic.On, true)
    */
   getCurrentDoorState(callback: CharacteristicGetCallback) {
-    const statusCallback = (status: boolean) => {
+    const statusCallback = (status: string) => {
       console.log(`status: ${status}`);
       this.service.setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED);
       this.platform.log.debug('callback status');

@@ -64,5 +64,70 @@
       "Phone": "123-456-7890",
       "DiagnosticDataOptIn": true
     }
+  },
+  "/api/v5.1/Accounts/ID1234567890ID/Devices": {
+    "get": {
+      "href": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices",
+      "count": 2,
+      "items": [
+        {
+          "href": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/CGSERIAL",
+          "serial_number": "CGSERIAL",
+          "device_family": "garagedoor",
+          "device_platform": "myq",
+          "device_type": "garagedooropener",
+          "name": "Garage Door Opener",
+          "parent_device": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/GWSERIAL",
+          "parent_device_id": "GWSERIAL",
+          "created_date": "2015-10-08T01:02:29.177",
+          "state": {
+            "gdo_lock_connected": false,
+            "attached_work_light_error_present": false,
+            "door_state": "closed",
+            "open": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/CGSERIAL/open",
+            "close": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/CGSERIAL/close",
+            "last_update": "2020-06-19T00:29:54.3470347Z",
+            "passthrough_interval": "00:00:00",
+            "door_ajar_interval": "00:00:00",
+            "invalid_credential_window": "00:00:00",
+            "invalid_shutout_period": "00:00:00",
+            "is_unattended_open_allowed": true,
+            "is_unattended_close_allowed": true,
+            "aux_relay_delay": "00:00:00",
+            "use_aux_relay": false,
+            "aux_relay_behavior": "None",
+            "rex_fires_door": false,
+            "command_channel_report_status": false,
+            "control_from_browser": false,
+            "report_forced": false,
+            "report_ajar": false,
+            "max_invalid_attempts": 0,
+            "online": true,
+            "last_status": "2020-06-19T11:14:16.9730112Z"
+          }
+        },
+        {
+          "href": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/GWSERIAL",
+          "serial_number": "GWSERIAL",
+          "device_family": "gateway",
+          "device_platform": "myq",
+          "device_type": "ethernetgateway",
+          "name": "Home",
+          "created_date": "2015-10-08T00:58:28.507",
+          "state": {
+            "firmware_version": "4.2",
+            "homekit_capable": false,
+            "homekit_enabled": false,
+            "learn": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/GWSERIAL/learn",
+            "learn_mode": false,
+            "updated_date": "2020-06-18T13:19:56.9623136Z",
+            "physical_devices": [],
+            "pending_bootload_abandoned": false,
+            "online": true,
+            "last_status": "2020-06-18T13:19:53.9578622Z"
+          }
+        }
+      ]
+    }
   }
 }

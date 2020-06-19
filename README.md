@@ -26,5 +26,10 @@ This starts a server on http://localhost:8000/ you can change the port by runnin
 npm run mock
 ```
 
+If you want to see the full depth of one of the myq response objects use
+
+`console.log(JSON.stringify(obj, null, 4));`
+
+
 Inspiration from:
 [pymyq](https://github.com/arraylabs/pymyq/blob/master/pymyq/)
