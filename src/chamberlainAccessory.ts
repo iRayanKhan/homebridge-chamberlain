@@ -61,7 +61,7 @@ export class ChamberlainAccessory {
     private readonly accessory: PlatformAccessory,
   ){
     const {username, password, deviceId} = accessory.context.device;
-    this.chamberlainService.init(username, password, deviceId);
+    this.chamberlainService.init(username, password, deviceId, this.platform.log);
 
     // get the GarageDoorOpener service if it exists, otherwise create a new GarageDoorOpener service
     this.service = this.accessory.getService(this.platform.Service.GarageDoorOpener)
