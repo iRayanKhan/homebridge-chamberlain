@@ -1,4 +1,6 @@
 import axios, {AxiosRequestConfig} from 'axios';
+import { Logger } from 'homebridge';
+
 import {MyQDevice, MyQAccount} from './interfaces';
 
 export default class ChamberlainService {
@@ -53,6 +55,7 @@ export default class ChamberlainService {
     this.username = '';
     this.password = '';
     this.securityToken = '';
+    this.log = {} as Logger;
   }
 
   private myqAccount: MyQAccount;
@@ -61,59 +64,75 @@ export default class ChamberlainService {
   private username: string;
   private password: string;
   private securityToken: string;
+  private log: Logger;
 
-  init(username: string, password: string, deviceId: string ){
+  init(username: string, password: string, deviceId: string, log: Logger){
     this.deviceId = deviceId;
     this.username = username;
     this.password = password;
+    this.log = log;
   }
 
   public async setup(): Promise<boolean>{
-    await this.getAccountId();
-    await this.getDevice();
+    // The token should check first as its used in all other calls
+    if(!this.securityToken){
+      this.log.debug('setup call getSecurityToken()');
+      await this.getSecurityToken();
+    }
+
+    if(Object.keys(this.myqAccount).length === 0){
+      this.log.debug('setup call getAccountId()');
+      await this.getAccountId();
+    }
+
+    if(Object.keys(this.myqDevice).length === 0){
+      this.log.debug('setup call getDevice()');
+      await this.getDevice();
+    }
     return true;
   }
 
   public async open(): Promise<boolean>{
     try{
+      await this.setup();
+
       await this.sleep(2000);
       return Promise.resolve(true);
     } catch(error){
-      console.log('open error: ', error);
+      this.log.debug('open error: ', error);
       return Promise.reject(false);
     }
   }
 
   public async close(): Promise<boolean>{
+    await this.setup();
+
     await this.sleep(2000);
     return Promise.resolve(false);
   }
 
   public async status(): Promise<string>{
     try {
+      await this.setup();
       const status = await this.getDeviceAttribute('door_state');
       return status;
     } catch (error) {
-      console.log('status error: ', error);
+      this.log.debug('status error: ', error);
       throw Error(error);
     }
   }
 
   private async getDeviceAttribute(attribute: string): Promise<string>{
-    return 'true';
+    try{
+      const myqDevice = await this.getDevice();
+      return myqDevice.state[attribute];
+    }catch(error){
+      this.log.debug('getDeviceAttribute error: ', error);
+      throw Error(error);
+    }
   }
 
   private async axiosRetry(method, params = {}, url, retries = 1, backoff = 300) {
-    // The token should check first as its used in all other calls
-    if(!this.securityToken){
-      await this.getSecurityToken();
-    }
-
-    // if for some reason (maybe the rist time this was run) the account isnt populated run setup()
-    if(Object.keys(this.myqAccount).length === 0){
-      await this.setup();
-    }
-
     const config: AxiosRequestConfig = {
       method,
       url,
@@ -128,10 +147,12 @@ export default class ChamberlainService {
       const {data}= await axios(config);
       return data;
     }catch(error) {
-      console.log('error: ', error.response.data);
-      console.log('error: ', error.response.status);
-      console.log('error: ', error.response.statusText);
-      const errorData = error.response.data;
+      this.log.debug('error: ', error.response.data);
+      this.log.debug('error: ', error.response.status);
+      this.log.debug('error: ', error.response.statusText);
+
+      // Log this if you want to see the full axios error.data
+      // const errorData = error.response.data;
 
       // 401's
       /**
@@ -158,7 +179,7 @@ export default class ChamberlainService {
           return this.axiosRetry(method, url, retries - 1, backoff * 2);
         }, backoff);
       } else {
-        console.log('too many retires');
+        this.log.debug('too many retires');
         throw new Error(error);
       }
     }
@@ -178,27 +199,35 @@ export default class ChamberlainService {
   }
 
   /**
-   * if the account has not been set up, request from myq and populate myqAccount
-   *
-   * else return the accountId
+   * if the myqAccount.Id has not been saved, request from myq and populate myqAccount
+   * else return the myqAccount.accountId
    */
   public async getAccountId(): Promise<string>{
     try {
       if(Object.keys(this.myqAccount).length === 0){
+        this.log.debug('getAccountId empty account');
         const params = {expand: 'account'};
         const response = await this.axiosRetry('get', params, `${this.URL_MY}`);
+        this.log.debug('response ', response.Account);
         this.myqAccount = response.Account;
       }
+      this.log.debug(`getAccountId return ${this.myqAccount.Id}`);
       return this.myqAccount.Id;
     } catch (error) {
-      console.log('getAccountId error: ', error);
+      this.log.debug('getAccountId error: ', error);
       throw Error(error);
     }
   }
 
+  /**
+   * if the myqDevice has not been saved, request from myq and populate myqDevice
+   * else return the saved one
+   */
   public async getDevice(): Promise<MyQDevice>{
+    console.log(`getDevice ${this.myqDevice}`);
     try {
-      if(Object.keys(this.myqDevice).length === 0 && this.myqAccount.Id){
+      if(Object.keys(this.myqDevice).length === 0){
+        this.log.debug('request a myqDevice');
         const response = await this.axiosRetry('get', {}, this.getUrlGetDevices(this.myqAccount.Id));
         const fullDeviceList = response.items;
         const filteredDeviceList = this.filterDeviceList(fullDeviceList);
@@ -213,9 +242,10 @@ export default class ChamberlainService {
           throw new Error(`Multiple controllable devices found: ${filteredDeviceList.join(', ')}`);
         }
       }
+      this.log.debug('return this.myqDevice');
       return this.myqDevice;
     } catch (error) {
-      console.log('getDevice error: ', error);
+      this.log.debug('getDevice error: ', error);
       throw Error(error);
     }
   }
@@ -241,15 +271,16 @@ export default class ChamberlainService {
 
   private async getSecurityToken(getNew = false) {
     if(getNew){
+      this.log.debug('getSecurityToken ** NEW **');
       this.securityToken = '';
     }
 
     if(this.securityToken){
       // we already have a token
-      console.log('give you existing token: ', this.securityToken);
+      this.log.debug('give you existing token: ', this.securityToken);
       return this.securityToken;
     } else {
-      console.log('get a new token: ');
+      this.log.debug('get a new token: ');
 
       // get a new token
       try {
@@ -264,9 +295,11 @@ export default class ChamberlainService {
 
         const response = await axios(axiosConfig);
         const { data } = response;
+        this.log.debug(`new token ${data.SecurityToken}`);
+        this.securityToken = data.SecurityToken;
         return data.SecurityToken;
       } catch (error) {
-        console.log('getSecurityToken error: ', error);
+        this.log.debug('getSecurityToken error: ', error);
         throw Error(error);
       }
     }
