@@ -129,5 +129,26 @@
         }
       ]
     }
+  },
+  "/api/v5.1/Accounts/ID1234567890ID/Devices/CGSERIAL/actions?action_type=open":{
+    "put":{
+      "status": 204,
+      "statusText": "No Content",
+      "data":""
+    }
+  },
+  "/api/v5.1/Accounts/ID1234567890ID/Devices/CGSERIAL/actions?action_type=close":{
+    "put":{
+      "status": 204,
+      "statusText": "No Content",
+      "data":""
+    }
+  },
+  "/api/v5.1/Accounts/ID1234567890ID/Devices/CGSERIAL/actions":{
+    "put":{
+      "status": 204,
+      "statusText": "No Content",
+      "data":""
+    }
   }
 }

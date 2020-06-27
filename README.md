@@ -30,6 +30,12 @@ This starts a server on http://localhost:8000/ you can change the port by runnin
 npm run mock
 ```
 
+On another terminal run
+
+```bash
+npm run watch
+```
+
 If you want to see the full depth of one of the myq response objects use
 
 `console.log(JSON.stringify(obj, null, 4));`

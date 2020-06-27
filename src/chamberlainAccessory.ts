@@ -30,16 +30,26 @@ export class ChamberlainAccessory {
     opened: false,
     open: async (callback: (status:boolean) => void) => {
       console.log('Opening the Garage!');
-      const result = await this.chamberlainService.open();
-      console.log('Done waiting for - Opening the Garage!');
+      let result = false;
+      try{
+        result = await this.chamberlainService.open();
+        console.log('Done waiting for - Opening the Garage!');
+      }catch(error){
+        console.log('Error opening garage: ', error);
+      }
+
       // this.FAKE_GARAGE.opened = result;
       callback(result);
     },
     close: async (callback: (status:boolean) => void) => {
       console.log('Closing the Garage!');
-      const result = await this.chamberlainService.close();
-      console.log('Done waiting for - Closing the Garage!');
-      // this.FAKE_GARAGE.opened = result;
+      let result = false;
+      try{
+        result = await this.chamberlainService.close();
+        console.log('Done waiting for - Closing the Garage!');
+      }catch(error){
+        console.log('Error closing garage: ', error);
+      }
       callback(result);
     },
     identify: () => {

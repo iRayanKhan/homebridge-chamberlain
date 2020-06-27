@@ -21,7 +21,8 @@
     "homebridge-plugin"
   ],
   "dependencies": {
-    "axios": "^0.19.2"
+    "axios": "^0.19.2",
+    "retry-axios": "^2.2.1"
   },
   "engines": {
     "node": ">=10.17.0",

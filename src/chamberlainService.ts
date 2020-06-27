@@ -1,13 +1,18 @@
+
+import * as rax from 'retry-axios';
 import axios, {AxiosRequestConfig} from 'axios';
 import { Logger } from 'homebridge';
 
 import {MyQDevice, MyQAccount} from './interfaces';
 
+// attach the retry-axios to axios default instance
+rax.attach();
+
 export default class ChamberlainService {
   private static instance: ChamberlainService;
 
   private DEVICES_API_VERSION = 5.1;
-  private DEFAULT_USER_AGENT = 'myQ/14041 CFNetwork/1107.1 Darwin/19.0.0';
+  private DEFAULT_USER_AGENT = 'myQ/19569 CFNetwork/1107.1 Darwin/19.0.0'; //TODO whats this error 14041
   private DEFAULT_BRAND_ID = 2;
   private DEFAULT_CULTURE = 'en';
   private DEFAULT_APP_ID = 'JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu';
@@ -93,10 +98,14 @@ export default class ChamberlainService {
   }
 
   public async open(): Promise<boolean>{
+    //TODO if its already open or opening return
     try{
       await this.setup();
 
-      await this.sleep(2000);
+      this.log.debug('open');
+      //TODO set the self state immediately so it wont call open twice
+      const status = await this.actOnDevice('open');
+      this.log.debug('open status: ', status);
       return Promise.resolve(true);
     } catch(error){
       this.log.debug('open error: ', error);
@@ -105,9 +114,12 @@ export default class ChamberlainService {
   }
 
   public async close(): Promise<boolean>{
+    //TODO: if its already closing or closed return
     await this.setup();
-
-    await this.sleep(2000);
+    this.log.debug('close');
+    //TODO: set the self state immediately so it wont call close twice
+    const status = await this.actOnDevice('close');
+    this.log.debug('close status: ', status);
     return Promise.resolve(false);
   }
 
@@ -132,56 +144,58 @@ export default class ChamberlainService {
     }
   }
 
-  private async axiosRetry(method, params = {}, url, retries = 1, backoff = 300) {
+  private async actOnDevice(action: string): Promise<number>{
+    try{
+      const myqDevice = await this.getDevice();
+      this.log.debug('act on a myqDevice');
+
+      const options = {
+        method: 'put',
+        url: this.getUrlSetDevices(this.myqAccount.Id, myqDevice.serial_number),
+        data: { action_type: action },
+      };
+      const status = await this.axiosRetry(options);
+      console.log('status: ', status);
+      return status;
+    }catch(error){
+      this.log.debug('actOnDevice error: ', error);
+      throw Error(error);
+    }
+  }
+
+  private async axiosRetry(options) {
     const config: AxiosRequestConfig = {
-      method,
-      url,
+      method: options.method,
+      url: options.url,
       headers: {
         ...this.MYQ_HEADERS,
         SecurityToken : this.securityToken,
       },
-      params: params,
+      params: options.params || {},
+      data: options.data || {},
+      raxConfig: {
+        retry: 1,
+        retryDelay: 300,
+        backoffType: 'exponential',
+        httpMethodsToRetry: ['GET', 'POST', 'PUT'],
+        statusCodesToRetry: [[100, 199], [400, 429], [500, 599]],
+        onRetryAttempt: async (err) => {
+          const cfg = rax.getConfig(err);
+          this.log.debug(`Retry attempt #${cfg ? cfg.currentRetryAttempt : 'undefined'}`);
+          await this.getSecurityToken(true);
+        },
+      },
     };
 
+    // console.log('axios: ', config);
     try{
-      const {data}= await axios(config);
+      const {data} = await axios(config);
       return data;
     }catch(error) {
       this.log.debug('error: ', error.response.data);
       this.log.debug('error: ', error.response.status);
       this.log.debug('error: ', error.response.statusText);
-
-      // Log this if you want to see the full axios error.data
-      // const errorData = error.response.data;
-
-      // 401's
-      /**
-        // Your headers are missing
-        data: {
-          code: '401.102'
-          message: 'Unauthorized',
-          description: 'The current call is Unauthorized.'
-        }
-
-        // SecurityToken expired
-        error:  {
-          code: '401.101',
-          message: 'Unauthorized',
-          description: 'The Security Token has expired.'
-        }
-      */
-      if(error.response.data === '401'){
-        await this.getSecurityToken(true);
-      }
-
-      if (retries > 0) {
-        setTimeout(() => {
-          return this.axiosRetry(method, url, retries - 1, backoff * 2);
-        }, backoff);
-      } else {
-        this.log.debug('too many retires');
-        throw new Error(error);
-      }
+      throw Error(`axios error: ${error.response.status}`);
     }
   }
 
@@ -206,8 +220,13 @@ export default class ChamberlainService {
     try {
       if(Object.keys(this.myqAccount).length === 0){
         this.log.debug('getAccountId empty account');
-        const params = {expand: 'account'};
-        const response = await this.axiosRetry('get', params, `${this.URL_MY}`);
+        const params = { expand: 'account' };
+        const options = {
+          method: 'get',
+          params,
+          url: `${this.URL_MY}`,
+        };
+        const response = await this.axiosRetry(options);
         this.log.debug('response ', response.Account);
         this.myqAccount = response.Account;
       }
@@ -224,22 +243,26 @@ export default class ChamberlainService {
    * else return the saved one
    */
   public async getDevice(): Promise<MyQDevice>{
-    console.log(`getDevice ${this.myqDevice}`);
+    this.log.debug(`getDevice ${this.myqDevice}`);
     try {
       if(Object.keys(this.myqDevice).length === 0){
         this.log.debug('request a myqDevice');
-        const response = await this.axiosRetry('get', {}, this.getUrlGetDevices(this.myqAccount.Id));
+        const options = {
+          method: 'get',
+          url: this.getUrlGetDevices(this.myqAccount.Id),
+        };
+        const response = await this.axiosRetry(options);
         const fullDeviceList = response.items;
         const filteredDeviceList = this.filterDeviceList(fullDeviceList);
 
         if (filteredDeviceList.length === 0) {
-          throw new Error('No controllable devices found');
+          throw Error('No controllable devices found');
         }
 
         if (filteredDeviceList.length === 1) {
           this.myqDevice = filteredDeviceList[0];
         } else {
-          throw new Error(`Multiple controllable devices found: ${filteredDeviceList.join(', ')}`);
+          throw Error(`Multiple controllable devices found: ${filteredDeviceList.join(', ')}`);
         }
       }
       this.log.debug('return this.myqDevice');
