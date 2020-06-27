@@ -1,4 +1,12 @@
-import { Service, PlatformAccessory, CharacteristicEventTypes, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback, Characteristic } from 'homebridge';
+import type {
+  Service,
+  PlatformAccessory,
+  CharacteristicEventTypes,
+  CharacteristicValue,
+  CharacteristicSetCallback,
+  CharacteristicGetCallback,
+  Characteristic } from 'homebridge';
+
 import ChamberlainService from './chamberlainService';
 import { ChamberlainHomebridgePlatform } from './platform';
 
@@ -29,39 +37,40 @@ export class ChamberlainAccessory {
   private FAKE_GARAGE = {
     opened: false,
     open: async (callback: (status:boolean) => void) => {
-      console.log('Opening the Garage!');
+      this.platform.log.debug('Opening the Garage!');
       let result = false;
       try{
         result = await this.chamberlainService.open();
-        console.log('Done waiting for - Opening the Garage!');
+        this.platform.log.debug('Done waiting for - Opening the Garage!');
       }catch(error){
-        console.log('Error opening garage: ', error);
+        this.platform.log.debug('Error opening garage: ', error);
       }
-
-      // this.FAKE_GARAGE.opened = result;
       callback(result);
     },
     close: async (callback: (status:boolean) => void) => {
-      console.log('Closing the Garage!');
+      this.platform.log.debug('Closing the Garage!');
       let result = false;
       try{
         result = await this.chamberlainService.close();
-        console.log('Done waiting for - Closing the Garage!');
+        this.platform.log.debug('Done waiting for - Closing the Garage!');
       }catch(error){
-        console.log('Error closing garage: ', error);
+        this.platform.log.debug('Error closing garage: ', error);
       }
       callback(result);
     },
     identify: () => {
       //add your code here which allows the garage to be identified
-      console.log('Identify the Garage');
+      this.platform.log.debug('Identify the Garage');
     },
     status: async (callback: (status:string) => void) =>{
-      //use this section to get sensor values. set the boolean FAKE_GARAGE.opened with a sensor value.
-      console.log('Status queried!');
-      // this.FAKE_GARAGE.opened = false;
-      const result = await this.chamberlainService.status();
-      // this.FAKE_GARAGE.opened = result;
+      this.platform.log.debug('Status queried!');
+      let result = 'Closed';
+      try{
+        result = await this.chamberlainService.status();
+        this.platform.log.debug('new result: ', result);
+      }catch(error){
+        this.platform.log.debug('Error checking status: ', error);
+      }
       callback(result);
     },
   };
@@ -146,7 +155,7 @@ export class ChamberlainAccessory {
    */
   getCurrentDoorState(callback: CharacteristicGetCallback) {
     const statusCallback = (status: string) => {
-      console.log(`status: ${status}`);
+      this.platform.log.debug(`status: ${status}`);
       this.service.setCharacteristic(this.platform.Characteristic.CurrentDoorState, this.platform.Characteristic.CurrentDoorState.CLOSED);
       this.platform.log.debug('callback status');
       callback();
@@ -156,10 +165,10 @@ export class ChamberlainAccessory {
     this.FAKE_GARAGE.status(statusCallback);
 
     // if (this.FAKE_GARAGE.opened) {
-    //   console.log('Query: Is Garage Open? Yes.');
+    //   this.platform.log.debug('Query: Is Garage Open? Yes.');
     //   callback(err, this.platform.Characteristic.CurrentDoorState.OPEN);
     // } else {
-    //   console.log('Query: Is Garage Open? No.');
+    //   this.platform.log.debug('Query: Is Garage Open? No.');
     //   callback(err, this.platform.Characteristic.CurrentDoorState.CLOSED);
     // }
   }

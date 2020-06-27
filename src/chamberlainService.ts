@@ -98,14 +98,19 @@ export default class ChamberlainService {
   }
 
   public async open(): Promise<boolean>{
-    //TODO if its already open or opening return
     try{
       await this.setup();
 
       this.log.debug('open');
-      //TODO set the self state immediately so it wont call open twice
-      const status = await this.actOnDevice('open');
-      this.log.debug('open status: ', status);
+      const door_state = await this.getDeviceAttribute('door_state');
+      if(door_state === 'open' || door_state === 'opening'){
+        this.log.debug(`door already ${door_state}`);
+        return Promise.resolve(false);
+      }
+
+      //TODO: set the self state immediately so it cant call open twice
+      const openResponse = await this.actOnDevice('open');
+      this.log.debug('openResponse: ', openResponse);
       return Promise.resolve(true);
     } catch(error){
       this.log.debug('open error: ', error);
@@ -114,13 +119,24 @@ export default class ChamberlainService {
   }
 
   public async close(): Promise<boolean>{
-    //TODO: if its already closing or closed return
-    await this.setup();
-    this.log.debug('close');
-    //TODO: set the self state immediately so it wont call close twice
-    const status = await this.actOnDevice('close');
-    this.log.debug('close status: ', status);
-    return Promise.resolve(false);
+    try{
+      await this.setup();
+
+      this.log.debug('close');
+      const door_state = await this.getDeviceAttribute('door_state');
+      if(door_state === 'closed' || door_state === 'closing'){
+        this.log.debug(`door already ${door_state}`);
+        return Promise.resolve(false);
+      }
+
+      //TODO: set the self state immediately so it cant call close twice
+      const closeResponse = await this.actOnDevice('close');
+      this.log.debug('closeResponse : ', closeResponse);
+      return Promise.resolve(false);
+    } catch(error){
+      this.log.debug('close error: ', error);
+      return Promise.reject(false);
+    }
   }
 
   public async status(): Promise<string>{
@@ -154,9 +170,9 @@ export default class ChamberlainService {
         url: this.getUrlSetDevices(this.myqAccount.Id, myqDevice.serial_number),
         data: { action_type: action },
       };
-      const status = await this.axiosRetry(options);
-      console.log('status: ', status);
-      return status;
+      const actOnDeviceResponse = await this.axiosRetry(options);
+      this.log.debug('actOnDeviceResponse: ', actOnDeviceResponse);
+      return actOnDeviceResponse;
     }catch(error){
       this.log.debug('actOnDevice error: ', error);
       throw Error(error);
@@ -200,9 +216,9 @@ export default class ChamberlainService {
   }
 
   // TODO: REMOVE FOR SIMULATING SLOW API ONLY
-  private sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  // private sleep(ms: number) {
+  //   return new Promise(resolve => setTimeout(resolve, ms));
+  // }
 
   private getUrlSetDevices(accountId: string, deviceId:string): string {
     return `${this.URL_DEVICE_BASE}/Accounts/${accountId}/Devices/${deviceId}/actions`;
@@ -227,7 +243,7 @@ export default class ChamberlainService {
           url: `${this.URL_MY}`,
         };
         const response = await this.axiosRetry(options);
-        this.log.debug('response ', response.Account);
+        // this.log.debug('response ', response.Account);
         this.myqAccount = response.Account;
       }
       this.log.debug(`getAccountId return ${this.myqAccount.Id}`);
@@ -243,7 +259,7 @@ export default class ChamberlainService {
    * else return the saved one
    */
   public async getDevice(): Promise<MyQDevice>{
-    this.log.debug(`getDevice ${this.myqDevice}`);
+    this.log.debug('getDevice');
     try {
       if(Object.keys(this.myqDevice).length === 0){
         this.log.debug('request a myqDevice');

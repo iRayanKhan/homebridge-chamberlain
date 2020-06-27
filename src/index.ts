@@ -1,4 +1,4 @@
-import { API } from 'homebridge';
+import type { API } from 'homebridge';
 
 import { PLATFORM_NAME } from './settings';
 import { ChamberlainHomebridgePlatform } from './platform';

@@ -83,7 +83,7 @@
           "state": {
             "gdo_lock_connected": false,
             "attached_work_light_error_present": false,
-            "door_state": "closed",
+            "door_state": "open",
             "open": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/CGSERIAL/open",
             "close": "http://api.myqdevice.com/api/v5/accounts/ID1234567890ID/devices/CGSERIAL/close",
             "last_update": "2020-06-19T00:29:54.3470347Z",
