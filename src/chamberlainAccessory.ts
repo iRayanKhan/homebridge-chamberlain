@@ -1,11 +1,15 @@
 import type {
+  Logger,
   Service,
   PlatformAccessory,
-  CharacteristicEventTypes,
   CharacteristicValue,
   CharacteristicSetCallback,
   CharacteristicGetCallback,
-  Characteristic } from 'homebridge';
+} from 'homebridge';
+
+import {
+  CharacteristicEventTypes,
+} from 'homebridge';
 
 import ChamberlainService from './chamberlainService';
 import { ChamberlainHomebridgePlatform } from './platform';
@@ -29,78 +33,80 @@ enum CurrentDoorState {
  * Each accessory may expose multiple services of different service types.
  */
 export class ChamberlainAccessory {
+  private readonly log: Logger;
+
   private service: Service;
   private chamberlainService = ChamberlainService.getInstance();
 
   private currentDoorState: CurrentDoorState;
 
-  private FAKE_GARAGE = {
-    opened: false,
-    open: async (callback: (status:boolean) => void) => {
-      this.platform.log.debug('Opening the Garage!');
-      let result = false;
-      try{
-        result = await this.chamberlainService.open();
-        this.platform.log.debug('Done waiting for - Opening the Garage!');
-      }catch(error){
-        this.platform.log.debug('Error opening garage: ', error);
-      }
-      callback(result);
-    },
-    close: async (callback: (status:boolean) => void) => {
-      this.platform.log.debug('Closing the Garage!');
+  open = async (callback: (status:boolean) => void) => {
+    this.log.debug('Opening the Garage!');
+    let result = false;
+    try{
+      result = await this.chamberlainService.open();
+      this.log.debug('Done waiting for - Opening the Garage!');
+    }catch(error){
+      this.log.debug('Error opening garage: ', error);
+    }
+    callback(result);
+  }
+
+    close = async (callback: (status:boolean) => void) => {
+      this.log.debug('Closing the Garage!');
       let result = false;
       try{
         result = await this.chamberlainService.close();
-        this.platform.log.debug('Done waiting for - Closing the Garage!');
+        this.log.debug('Done waiting for - Closing the Garage!');
       }catch(error){
-        this.platform.log.debug('Error closing garage: ', error);
+        this.log.debug('Error closing garage: ', error);
       }
       callback(result);
-    },
-    identify: () => {
-      //add your code here which allows the garage to be identified
-      this.platform.log.debug('Identify the Garage');
-    },
-    status: async (callback: (status:string) => void) =>{
-      this.platform.log.debug('Status queried!');
+    }
+
+    status= async (callback: (status:string) => void) =>{
+      this.log.debug('Status queried!');
       let result = 'Closed';
       try{
         result = await this.chamberlainService.status();
-        this.platform.log.debug('new result: ', result);
+        this.log.debug('new result: ', result);
       }catch(error){
-        this.platform.log.debug('Error checking status: ', error);
+        this.log.debug('Error checking status: ', error);
       }
       callback(result);
-    },
-  };
+    }
 
-  constructor(
+
+    constructor(
     private readonly platform: ChamberlainHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
-  ){
-    const {username, password, deviceId} = accessory.context.device;
-    this.chamberlainService.init(username, password, deviceId, this.platform.log);
+    ){
+      this.log = this.platform.log;
 
-    // get the GarageDoorOpener service if it exists, otherwise create a new GarageDoorOpener service
-    this.service = this.accessory.getService(this.platform.Service.GarageDoorOpener)
-    || this.accessory.addService(this.platform.Service.GarageDoorOpener);
+      const {username, password, deviceId} = accessory.context.device;
+      const garageDoorOpener = this.platform.Service.GarageDoorOpener;
 
-    // set the service name, this is what is displayed as the default name on the Home app
-    // we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
+      this.chamberlainService.init(username, password, deviceId, this.log);
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.CurrentDoorState)
-      .on('get', this.getCurrentDoorState.bind(this));
+      // get the GarageDoorOpener service if it exists, otherwise create a new GarageDoorOpener service
+      this.service = this.accessory.getService(garageDoorOpener)
+    || this.accessory.addService(garageDoorOpener);
 
-    this.service
-      .getCharacteristic(this.platform.Characteristic.TargetDoorState)
-      .on('set', this.setTargetDoorState.bind(this));
+      // set the service name, this is what is displayed as the default name on the Home app
+      // we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
+      this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
 
-    this.currentDoorState = CurrentDoorState.CLOSED;
-    this.service.updateCharacteristic(this.platform.Characteristic.CurrentDoorState, this.currentDoorState);
-  }
+      this.service
+        .getCharacteristic(this.platform.Characteristic.CurrentDoorState)
+        .on(CharacteristicEventTypes.GET, this.getCurrentDoorState.bind(this));
+
+      this.service
+        .getCharacteristic(this.platform.Characteristic.TargetDoorState)
+        .on(CharacteristicEventTypes.SET, this.setTargetDoorState.bind(this));
+
+      this.currentDoorState = CurrentDoorState.CLOSED;
+      this.service.updateCharacteristic(this.platform.Characteristic.CurrentDoorState, this.currentDoorState);
+    }
 
   readonly setCurrentDoorState = (state: CurrentDoorState) => {
     this.platform.log.debug('setting current door state to ' + CurrentDoorState[state]);
@@ -123,7 +129,7 @@ export class ChamberlainAccessory {
         this.platform.log.debug('callback close done');
       };
 
-      this.FAKE_GARAGE.close(closedCallback);
+      this.close(closedCallback);
       this.platform.log.debug('done setTargetDoorState closing');
 
     } else if (value === this.platform.Characteristic.TargetDoorState.OPEN) {
@@ -135,7 +141,7 @@ export class ChamberlainAccessory {
 
       };
 
-      this.FAKE_GARAGE.open(openCallback);
+      this.open(openCallback);
       this.platform.log.debug('done setTargetDoorState opening');
     }
   }
@@ -162,7 +168,7 @@ export class ChamberlainAccessory {
       this.platform.log.debug('callback status done');
     };
 
-    this.FAKE_GARAGE.status(statusCallback);
+    this.status(statusCallback);
 
     // if (this.FAKE_GARAGE.opened) {
     //   this.platform.log.debug('Query: Is Garage Open? Yes.');
