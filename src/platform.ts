@@ -65,7 +65,6 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
     }
 
     for (const device of this.config.devices) {
-
       // generate a unique id for the accessory this should be generated from
       // something globally unique, but constant, for example, the device serial
       // number or MAC address
@@ -100,7 +99,7 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
         // this.api.updatePlatformAccessories([existingAccessory]);
 
         // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
+        // this is imported from `chamberlainAccessory.ts`
         new ChamberlainAccessory(this, existingAccessory);
 
         // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
@@ -117,7 +116,7 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
         accessory.context.device = device;
 
         // create the accessory handler for the newly create accessory
-        // this is imported from `platformAccessory.ts`
+        // this is imported from `chamberlainAccessory.ts`
         new ChamberlainAccessory(this, accessory);
 
         // link the accessory to your platform
