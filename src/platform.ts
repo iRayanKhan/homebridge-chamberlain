@@ -71,7 +71,8 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
       if(existingAccessory){
         this.log.error(`discoverDeviceID - update ${uuid}`);
-        this.api.updatePlatformAccessories([existingAccessory]);
+        this.unregisterAccessories();
+        this.discoverDeviceID();
       } else {
         const accessory = new this.api.platformAccessory(device.name, uuid);
         accessory.context.device = device;

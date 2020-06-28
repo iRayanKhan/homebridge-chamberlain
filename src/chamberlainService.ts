@@ -340,6 +340,9 @@ export default class ChamberlainService {
         const axiosConfig: AxiosRequestConfig = {
           method: 'post',
           url: `${this.URL_AUTH}`,
+          headers: {
+            ...this.MYQ_HEADERS,
+          },
           data: {
             Username: this.username,
             Password: this.password,
@@ -352,8 +355,26 @@ export default class ChamberlainService {
         this.securityToken = data.SecurityToken;
         return data.SecurityToken;
       } catch (error) {
-        this.log.debug('getSecurityToken error: ', error);
-        throw Error(error);
+        if (error.response) {
+          /*
+           * The request was made and the server responded with a
+           * status code that falls out of the range of 2xx
+           */
+          this.log.error(error.response.data);
+          this.log.error(error.response.status);
+        } else if (error.request) {
+          /*
+           * The request was made but no response was received, `error.request`
+           * is an instance of XMLHttpRequest in the browser and an instance
+           * of http.ClientRequest in Node.js
+           */
+          this.log.error(error.request);
+        } else {
+          // Something happened in setting up the request and triggered an Error
+          this.log.error('Error', error.message);
+        }
+
+        throw Error('getSecurityToken error');
       }
     }
   }
