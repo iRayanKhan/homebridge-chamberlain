@@ -3,7 +3,7 @@ import * as rax from 'retry-axios';
 import axios, {AxiosRequestConfig} from 'axios';
 import { Logger } from 'homebridge';
 
-import {MyQDevice, MyQAccount} from './interfaces';
+import {MyQDevice, MyQAccount} from './MyQTypes';
 
 // attach the retry-axios to axios default instance
 rax.attach();
@@ -12,7 +12,7 @@ export default class ChamberlainService {
   private static instance: ChamberlainService;
 
   private DEVICES_API_VERSION = 5.1;
-  private DEFAULT_USER_AGENT = 'myQ/19569 CFNetwork/1107.1 Darwin/19.0.0'; //TODO whats this error 14041
+  private DEFAULT_USER_AGENT = 'myQ/19569 CFNetwork/1107.1 Darwin/19.0.0'; //TODO whats this error look like 14041
   private DEFAULT_BRAND_ID = 2;
   private DEFAULT_CULTURE = 'en';
   private DEFAULT_APP_ID = 'JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu';
@@ -78,6 +78,7 @@ export default class ChamberlainService {
     this.log = log;
   }
 
+  // 'Wrapper' function to handle making sure the token, account and device are populated
   public async setup(): Promise<boolean>{
     // The token should check first as its used in all other calls
     if(!this.securityToken){
@@ -97,62 +98,69 @@ export default class ChamberlainService {
     return true;
   }
 
-  public async open(): Promise<boolean>{
+  // open door
+  public async openDoor(): Promise<string>{
     try{
       await this.setup();
 
       this.log.debug('open');
+
+      // Check the existing device, if it is already open or opening just return that value
       const door_state = await this.getDeviceAttribute('door_state');
       if(door_state === 'open' || door_state === 'opening'){
         this.log.debug(`door already ${door_state}`);
-        return Promise.resolve(false);
+        return Promise.resolve(door_state);
       }
 
-      //TODO: set the self state immediately so it cant call open twice
+      // request API to open the door
       const openResponse = await this.actOnDevice('open');
       this.log.debug('openResponse: ', openResponse);
-      return Promise.resolve(true);
+      return Promise.resolve('opening');
     } catch(error){
       this.log.debug('open error: ', error);
-      return Promise.reject(false);
+      return Promise.reject('error');
     }
   }
 
-  public async close(): Promise<boolean>{
+  public async closeDoor(): Promise<string>{
     try{
       await this.setup();
 
       this.log.debug('close');
+
+      // Check the existing device, if it is already closed or closing just return that value
       const door_state = await this.getDeviceAttribute('door_state');
       if(door_state === 'closed' || door_state === 'closing'){
         this.log.debug(`door already ${door_state}`);
-        return Promise.resolve(false);
+        return Promise.resolve(door_state);
       }
 
-      //TODO: set the self state immediately so it cant call close twice
+      // request API to close the door
       const closeResponse = await this.actOnDevice('close');
       this.log.debug('closeResponse : ', closeResponse);
-      return Promise.resolve(false);
+      return Promise.resolve('closing');
     } catch(error){
       this.log.debug('close error: ', error);
-      return Promise.reject(false);
+      return Promise.reject('error');
     }
   }
 
-  public async status(): Promise<string>{
+  // get the current state of the door
+  public async getDoorState(): Promise<string>{
     try {
       await this.setup();
-      const status = await this.getDeviceAttribute('door_state');
-      return status;
+
+      return await this.getDeviceAttribute('door_state');
     } catch (error) {
       this.log.debug('status error: ', error);
       throw Error(error);
     }
   }
 
+  // get the current, specific attribute (force a refresh)
   private async getDeviceAttribute(attribute: string): Promise<string>{
     try{
-      const myqDevice = await this.getDevice();
+      const myqDevice = await this.getDevice(true);
       return myqDevice.state[attribute];
     }catch(error){
       this.log.debug('getDeviceAttribute error: ', error);
@@ -160,6 +168,7 @@ export default class ChamberlainService {
     }
   }
 
+  // ask the API to do an action
   private async actOnDevice(action: string): Promise<number>{
     try{
       const myqDevice = await this.getDevice();
@@ -179,6 +188,9 @@ export default class ChamberlainService {
     }
   }
 
+  // API call (with axios retry)
+  // You can set the number of retries and default delay (with exponential backoff)
+  // if the request fails a new security token will be requested (and set) before the next request via axios interceptor onRetryAttempt
   private async axiosRetry(options) {
     const config: AxiosRequestConfig = {
       method: options.method,
@@ -215,15 +227,12 @@ export default class ChamberlainService {
     }
   }
 
-  // TODO: REMOVE FOR SIMULATING SLOW API ONLY
-  // private sleep(ms: number) {
-  //   return new Promise(resolve => setTimeout(resolve, ms));
-  // }
-
+  // helper to create the URL string
   private getUrlSetDevices(accountId: string, deviceId:string): string {
     return `${this.URL_DEVICE_BASE}/Accounts/${accountId}/Devices/${deviceId}/actions`;
   }
 
+  // helper to create the URL string
   private getUrlGetDevices(accountId: string): string{
     return `${this.URL_DEVICE_BASE}/Accounts/${accountId}/Devices`;
   }
@@ -255,13 +264,13 @@ export default class ChamberlainService {
   }
 
   /**
-   * if the myqDevice has not been saved, request from myq and populate myqDevice
-   * else return the saved one
+   * if the myqDevice has not been saved or a refresh is requested, request from myq and populate myqDevice
+   * else return the saved myqDevice
    */
-  public async getDevice(): Promise<MyQDevice>{
+  public async getDevice(refresh = false): Promise<MyQDevice>{
     this.log.debug('getDevice');
     try {
-      if(Object.keys(this.myqDevice).length === 0){
+      if(Object.keys(this.myqDevice).length === 0 || refresh){
         this.log.debug('request a myqDevice');
         const options = {
           method: 'get',
@@ -308,6 +317,7 @@ export default class ChamberlainService {
     return filteredDevices;
   }
 
+  // get and request a token
   private async getSecurityToken(getNew = false) {
     if(getNew){
       this.log.debug('getSecurityToken ** NEW **');

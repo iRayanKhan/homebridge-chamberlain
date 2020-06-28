@@ -3,27 +3,16 @@ import type {
   Service,
   PlatformAccessory,
   CharacteristicValue,
-  CharacteristicSetCallback,
-  CharacteristicGetCallback,
 } from 'homebridge';
 
 import { CharacteristicEventTypes } from 'homebridge';
 
 import ChamberlainService from './chamberlainService';
 import { ChamberlainHomebridgePlatform } from './platform';
+import callbackify from './util/callbackify';
 
-enum TargetDoorState {
-  OPEN = 0,
-  CLOSED = 1,
-}
-
-enum CurrentDoorState {
-  OPEN = 0,
-  CLOSED = 1,
-  OPENING = 2,
-  CLOSING = 3,
-  STOPPED = 4,
-}
+const ACTIVE_DELAY = 1000 * 2; // When the targetState !== currentState poll more often
+const IDLE_DELAY = 1000 * 30;
 
 /**
  * Chamberlain Accessory
@@ -36,43 +25,10 @@ export class ChamberlainAccessory {
   private service: Service;
   private chamberlainService = ChamberlainService.getInstance();
 
-  // private currentDoorState: CurrentDoorState;
+  private targetDoorState: CharacteristicValue;
+  private currentDoorState: CharacteristicValue;
 
-  open = async (callback: (status: boolean) => void) => {
-    this.log.debug('Opening the Garage!');
-    let result = false;
-    try {
-      result = await this.chamberlainService.open();
-      this.log.debug('Opening the Garage: ', result);
-      callback(result);
-    } catch (error) {
-      this.log.debug('Error opening garage: ', error);
-    }
-  };
-
-  close = async (callback: (status: boolean) => void) => {
-    this.log.debug('Closing the Garage!');
-    let result = false;
-    try {
-      result = await this.chamberlainService.close();
-      this.log.debug('Closing the Garage result: ', result);
-      callback(result);
-    } catch (error) {
-      this.log.debug('Error closing garage: ', error);
-    }
-  };
-
-  status = async (callback: (status: string) => void) => {
-    this.log.debug('Status of the Garage!');
-    let result = 'Closed';
-    try {
-      result = await this.chamberlainService.status();
-      this.log.debug('Status of the Garage result: ', result);
-      callback(result);
-    } catch (error) {
-      this.log.debug('Error checking status: ', error);
-    }
-  };
+  private pollTimeoutId!: NodeJS.Timeout;
 
   constructor(
     private readonly platform: ChamberlainHomebridgePlatform,
@@ -97,103 +53,181 @@ export class ChamberlainAccessory {
       accessory.context.device.name,
     );
 
+    // CurrentDoorState
     this.service
       .getCharacteristic(this.platform.Characteristic.CurrentDoorState)
-      .on(CharacteristicEventTypes.GET, this.getCurrentDoorState.bind(this))
-      .getValue();
+      .on(CharacteristicEventTypes.GET, callbackify(this.getCurrentDoorState))
+      .on('change', ({ newValue }) => {
+        this.log.debug(`Garage Door state changed to ${newValue}`);
+      });
 
+    // TargetDoorState
     this.service
       .getCharacteristic(this.platform.Characteristic.TargetDoorState)
-      .on(CharacteristicEventTypes.SET, this.setTargetDoorState.bind(this));
+      .on(CharacteristicEventTypes.SET, callbackify(this.setTargetDoorState))
+      .on(CharacteristicEventTypes.GET, callbackify(this.getTargetDoorState))
+      .on('change', ({ newValue }) => {
+        this.log.debug(`Garage Door targetstate changed to ${newValue}`);
+      });
+
+    // Set the class variables to default
+    this.targetDoorState = this.platform.Characteristic.TargetDoorState.CLOSED;
+    this.currentDoorState = this.platform.Characteristic.CurrentDoorState.CLOSED;
+
+    // Udpate the characteristic for target and current
+    this.service.updateCharacteristic(
+      this.platform.Characteristic.TargetDoorState,
+      this.targetDoorState,
+    );
+    this.service.updateCharacteristic(
+      this.platform.Characteristic.CurrentDoorState,
+      this.currentDoorState,
+    );
+
+    // IIFE to 'watch' for changes
+    (this.poll = this.poll.bind(this))();
   }
 
-  /**
-   * Handle "SET" requests from HomeKit
-   * These are sent when the user changes the state of an accessory, for example, turning on a Light bulb.
-   */
-  setTargetDoorState(
-    value: CharacteristicValue,
-    callback: CharacteristicSetCallback,
-  ) {
-    if (value === this.platform.Characteristic.TargetDoorState.CLOSED) {
-      const closedCallback = () => {
-        this.service.setCharacteristic(
-          this.platform.Characteristic.CurrentDoorState,
-          this.platform.Characteristic.CurrentDoorState.CLOSED,
+  // poll every X seconds for door state changes
+  // during a state change the poll will happen more frequently until the state is set back to matching values
+  poll = async () => {
+    // remove the old poll
+    clearTimeout(this.pollTimeoutId);
+
+    // get (and set) the current door state
+    await this.getCurrentDoorState();
+
+    this.log.debug(
+      `POLL currentDoorState ${this.currentDoorState} targetDoorState ${this.targetDoorState}`,
+    );
+
+    const delay =
+      this.targetDoorState !== this.currentDoorState
+        ? ACTIVE_DELAY
+        : IDLE_DELAY;
+
+    // set up a new poll
+    this.pollTimeoutId = setTimeout(this.poll, delay);
+  };
+
+  // tell the chamberlain service the new target state
+  // update that in the class variable
+  // set the targetState characteristic with the desired value
+  setTargetDoorState = async (targetState: CharacteristicValue) => {
+    if (targetState === this.platform.Characteristic.TargetDoorState.CLOSED) {
+      // CLOSE
+      this.log.debug('Closing the Garage!');
+      try {
+        this.targetDoorState = this.platform.Characteristic.TargetDoorState.CLOSED;
+        const result = await this.chamberlainService.closeDoor();
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.TargetDoorState,
+          targetState,
         );
-        this.platform.log.debug('closedCallback');
-        callback();
-        this.platform.log.debug('closedCallback done');
-      };
-
-      this.close(closedCallback);
-      this.platform.log.debug('done setTargetDoorState closing');
-    } else if (value === this.platform.Characteristic.TargetDoorState.OPEN) {
-      const openCallback = () => {
-        this.service.setCharacteristic(
+        this.service.updateCharacteristic(
           this.platform.Characteristic.CurrentDoorState,
-          this.platform.Characteristic.CurrentDoorState.OPEN,
+          this.platform.Characteristic.CurrentDoorState.CLOSING,
         );
-        this.platform.log.debug('openCallback');
-        callback();
-        this.platform.log.debug('openCallback done');
-      };
 
-      this.open(openCallback);
-      this.platform.log.debug('done setTargetDoorState opening');
-    }
-  }
-
-  /**
-   * Handle the "GET" requests from HomeKit
-   * These are sent when HomeKit wants to know the current state of the accessory, for example, checking if a Light bulb is on.
-   *
-   * GET requests should return as fast as possbile. A long delay here will result in
-   * HomeKit being unresponsive and a bad user experience in general.
-   */
-  getCurrentDoorState(callback: CharacteristicGetCallback) {
-    const statusCallback = (status: string) => {
-      this.platform.log.debug(`statusCallback: ${status}`);
-
-      let statusMapValue = this.platform.Characteristic.CurrentDoorState.CLOSED;
-      switch(status){
-        case 'open':
-          statusMapValue = this.platform.Characteristic.CurrentDoorState.OPEN;
-          break;
-        case 'opening':
-          statusMapValue = this.platform.Characteristic.CurrentDoorState.OPENING;
-          break;
-        case 'closed':
-          statusMapValue = this.platform.Characteristic.CurrentDoorState.CLOSED;
-          break;
-        case 'closing':
-          statusMapValue = this.platform.Characteristic.CurrentDoorState.CLOSING;
-          break;
-        case 'stopped':
-          statusMapValue = this.platform.Characteristic.CurrentDoorState.STOPPED;
-          break;
-        default: //CLOSED
-          break;
+        this.log.debug('Closing the Garage result: ', result);
+      } catch (error) {
+        this.log.debug('Error closing garage: ', error);
       }
+    } else if (
+      targetState === this.platform.Characteristic.TargetDoorState.OPEN
+    ) {
+      // OPEN
+      this.log.debug('Opening the Garage!');
+      try {
+        const result = await this.chamberlainService.openDoor();
 
-      this.platform.log.debug('callback setvalue:', statusMapValue);
-      this.service.getCharacteristic(this.platform.Characteristic.CurrentDoorState).setValue(statusMapValue);
-      this.platform.log.debug('callback status', statusMapValue);
-      callback(null, statusMapValue);
-      this.platform.log.debug('callback status done');
-    };
+        this.targetDoorState = this.platform.Characteristic.TargetDoorState.OPEN;
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.TargetDoorState,
+          targetState,
+        );
+        this.service.updateCharacteristic(
+          this.platform.Characteristic.CurrentDoorState,
+          this.platform.Characteristic.CurrentDoorState.OPENING,
+        );
 
-    this.log.debug('1 status');
-    this.status(statusCallback);
-    this.log.debug('2 status');
+        this.log.debug('Opening the Garage: ', result);
+      } catch (error) {
+        this.log.debug('Error opening garage: ', error);
+      }
+    }
+  };
 
+  // return the target door state
+  getTargetDoorState = async () => {
+    return this.targetDoorState;
+  };
 
-    // if (this.FAKE_GARAGE.opened) {
-    //   this.platform.log.debug('Query: Is Garage Open? Yes.');
-    //   callback(err, this.platform.Characteristic.CurrentDoorState.OPEN);
-    // } else {
-    //   this.platform.log.debug('Query: Is Garage Open? No.');
-    //   callback(err, this.platform.Characteristic.CurrentDoorState.CLOSED);
-    // }
-  }
+  // ask the chamberlain service for the current door state
+  // set the currentDoorState class variable and characteristic with the result
+  getCurrentDoorState = async () => {
+    this.log.debug('Status of the Garage!');
+    let state = 'closed';
+    try {
+      state = await this.chamberlainService.getDoorState();
+
+      this.log.debug('Status of the Garage result: ', state);
+
+      this.currentDoorState = this.mapCurrentDoorState(state);
+
+      this.service.updateCharacteristic(
+        this.platform.Characteristic.CurrentDoorState,
+        this.currentDoorState,
+      );
+
+      this.log.debug('getDoorState of the Garage : ', this.currentDoorState);
+
+      return this.currentDoorState;
+    } catch (error) {
+      this.log.debug('Error checking status: ', error);
+    }
+  };
+
+  // map the value from the chamberlain API to a homebridge value
+  mapCurrentDoorState = (state: string) => {
+    let stateMappedValue = this.platform.Characteristic.CurrentDoorState.CLOSED;
+    switch (state) {
+      case 'open':
+        stateMappedValue = this.platform.Characteristic.CurrentDoorState.OPEN;
+        break;
+      case 'opening':
+        stateMappedValue = this.platform.Characteristic.CurrentDoorState.OPENING;
+        break;
+      case 'closed':
+        stateMappedValue = this.platform.Characteristic.CurrentDoorState.CLOSED;
+        break;
+      case 'closing':
+        stateMappedValue = this.platform.Characteristic.CurrentDoorState.CLOSING;
+        break;
+      case 'stopped':
+        stateMappedValue = this.platform.Characteristic.CurrentDoorState.STOPPED;
+        break;
+      default:
+        //CLOSED
+        break;
+    }
+    return stateMappedValue;
+  };
+
+  // map the value from the chamberlain API to a homebridge value
+  mapTargetDoorState = (state: string) => {
+    let stateMappedValue = this.platform.Characteristic.TargetDoorState.CLOSED;
+    switch (state) {
+      case 'open':
+        stateMappedValue = this.platform.Characteristic.TargetDoorState.OPEN;
+        break;
+      case 'closed':
+        stateMappedValue = this.platform.Characteristic.TargetDoorState.CLOSED;
+        break;
+      default:
+        //CLOSED
+        break;
+    }
+    return stateMappedValue;
+  };
 }
