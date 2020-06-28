@@ -28,8 +28,8 @@ export default class ChamberlainService {
   };
 
   // If you are running mock-json-server
-  private URL_BASE = 'http://127.0.0.1:3000';
-  // private URL_BASE = 'https://api.myqdevice.com';
+  // private URL_BASE = 'http://127.0.0.1:3000';
+  private URL_BASE = 'https://api.myqdevice.com';
 
   private URL_AUTH = `${this.URL_BASE}/api/v5/Login`;
   private URL_DEVICE_BASE = `${this.URL_BASE}/api/v5.1`;
