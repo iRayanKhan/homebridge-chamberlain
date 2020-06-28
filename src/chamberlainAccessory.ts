@@ -29,14 +29,16 @@ export class ChamberlainAccessory {
   private currentDoorState: CharacteristicValue;
 
   private pollTimeoutId!: NodeJS.Timeout;
+  private deviceId: string;
 
   constructor(
     private readonly platform: ChamberlainHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
     this.log = this.platform.log;
-
     const { username, password, deviceId } = accessory.context.device;
+    this.deviceId = deviceId;
+
     const garageDoorOpener = this.platform.Service.GarageDoorOpener;
 
     this.chamberlainService.init(username, password, deviceId, this.log);
@@ -91,6 +93,11 @@ export class ChamberlainAccessory {
   // poll every X seconds for door state changes
   // during a state change the poll will happen more frequently until the state is set back to matching values
   poll = async () => {
+    if(!this.deviceId || this.deviceId === ''){
+      // this is a new/unknown device so dont poll it
+      return;
+    }
+
     // remove the old poll
     clearTimeout(this.pollTimeoutId);
 

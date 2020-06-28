@@ -38,6 +38,9 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
       log.debug('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
       this.discoverDevices();
+
+      // CAUTION run this to sudo rm -rf your accessories CAUTION
+      // this.unregisterAccessories();
     });
   }
 
@@ -50,6 +53,37 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
 
     // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.push(accessory);
+  }
+
+  unregisterAccessories(){
+    this.accessories.forEach(accessory => {
+      this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    });
+  }
+
+  discoverDeviceID(){
+    // create a new temporary accessory to perform the initial mq setup.
+    // this should not turn on polling and uses the device name + '_SALT' as UUID
+    // device will be added and removed in 30 seconds (SO GO CHECK YOUR LOG FILE)
+    this.log.error('discoverDeviceID - temporarily adding a device to find deviceID');
+    for (const device of this.config.devices) {
+      const uuid = this.api.hap.uuid.generate(device.username+'_SALT');
+      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+      if(existingAccessory){
+        this.log.error(`discoverDeviceID - update ${uuid}`);
+        this.api.updatePlatformAccessories([existingAccessory]);
+      } else {
+        const accessory = new this.api.platformAccessory(device.name, uuid);
+        accessory.context.device = device;
+        new ChamberlainAccessory(this, accessory);
+        this.log.error(`discoverDeviceID - register ${uuid}`);
+        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        setTimeout(() => {
+          this.log.error(`discoverDeviceID - unregister ${uuid}`);
+          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        }, 30000);
+      }
+    }
   }
 
   /**
@@ -68,11 +102,6 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
       // generate a unique id for the accessory this should be generated from
       // something globally unique, but constant, for example, the device serial
       // number or MAC address
-      if(!device.deviceId){
-        this.log.error('No deviceId found in your config.json - see config.schema.json');
-        return;
-      }
-
       if(!device.username){
         this.log.error('No username found in your config.json - see config.schema.json');
         return;
@@ -80,6 +109,12 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
 
       if(!device.password){
         this.log.error('No password found in your config.json - see config.schema.json');
+        return;
+      }
+
+      if(!device.deviceId || device.deviceId === ''){
+        this.log.error('No deviceId found in your config.json');
+        this.discoverDeviceID();
         return;
       }
 
@@ -96,7 +131,7 @@ export class ChamberlainHomebridgePlatform implements DynamicPlatformPlugin {
 
         // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
         // existingAccessory.context.device = device;
-        // this.api.updatePlatformAccessories([existingAccessory]);
+        this.api.updatePlatformAccessories([existingAccessory]);
 
         // create the accessory handler for the restored accessory
         // this is imported from `chamberlainAccessory.ts`

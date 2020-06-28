@@ -290,6 +290,10 @@ export default class ChamberlainService {
           throw Error(`Multiple controllable devices found: ${filteredDeviceList.join(', ')}`);
         }
       }
+      if(!this.deviceId || this.deviceId === ''){
+        // output the device ID for the first time configuration
+        this.log.error(`***** deviceId ${this.myqDevice.serial_number} *****`);
+      }
       this.log.debug('return this.myqDevice');
       return this.myqDevice;
     } catch (error) {
