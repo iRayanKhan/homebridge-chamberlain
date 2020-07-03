@@ -15,10 +15,7 @@ module.exports = class {
 
     this.apiToHap = {
       'open': CurrentDoorState.OPEN,
-      'closed': CurrentDoorState.CLOSED,
-      'opening': CurrentDoorState.OPENING,
-      'closing': CurrentDoorState.CLOSING,
-      'stopped': CurrentDoorState.STOPPED
+      'closed': CurrentDoorState.CLOSED
     };
 
     this.hapToApi = {
@@ -30,16 +27,14 @@ module.exports = class {
       [CurrentDoorState.OPEN]: 'open',
       [CurrentDoorState.CLOSED]: 'closed',
       [CurrentDoorState.OPENING]: 'opening',
-      [CurrentDoorState.CLOSING]: 'closing',
-      [CurrentDoorState.STOPPED]: 'stopped'
+      [CurrentDoorState.CLOSING]: 'closing'
     };
 
     this.currentToTarget = {
       [CurrentDoorState.OPEN]: TargetDoorState.OPEN,
       [CurrentDoorState.CLOSED]: TargetDoorState.CLOSED,
-      [CurrentDoorState.OPENING]: TargetDoorState.OPENING,
-      [CurrentDoorState.CLOSING]: TargetDoorState.CLOSING,
-      [CurrentDoorState.STOPPED]: TargetDoorState.STOPPED
+      [CurrentDoorState.OPENING]: TargetDoorState.OPEN,
+      [CurrentDoorState.CLOSING]: TargetDoorState.CLOSED
     };
 
     const service = this.service = new Service.GarageDoorOpener(name);
