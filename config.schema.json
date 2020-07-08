@@ -32,6 +32,11 @@
             "title": "Device ID",
             "type": "string",
             "description": "For a single door, the Device ID will be autodetected."
+          },
+          "myqUserAgent": {
+            "title": "MyQ User Agent",
+            "type": "string",
+            "description": "MyQ User Agent to be included with every request"
           }
         }
       }

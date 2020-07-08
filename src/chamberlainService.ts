@@ -12,7 +12,6 @@ export default class ChamberlainService {
   private static instance: ChamberlainService;
 
   private DEVICES_API_VERSION = 5.1;
-  private DEFAULT_USER_AGENT = 'myQ/19569 CFNetwork/1107.1 Darwin/19.0.0'; //TODO whats this error look like 14041
   private DEFAULT_BRAND_ID = 2;
   private DEFAULT_CULTURE = 'en';
   private DEFAULT_APP_ID = 'JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu';
@@ -21,7 +20,6 @@ export default class ChamberlainService {
   private MYQ_HEADERS = {
     'Content-Type': 'application/json',
     MyQApplicationId: this.DEFAULT_APP_ID,
-    'User-Agent': this.DEFAULT_USER_AGENT,
     ApiVersion: this.DEVICES_API_VERSION,
     BrandId: this.DEFAULT_BRAND_ID,
     Culture: this.DEFAULT_CULTURE,
@@ -59,6 +57,7 @@ export default class ChamberlainService {
     this.deviceId = '';
     this.username = '';
     this.password = '';
+    this.myqUserAgent = '';
     this.securityToken = '';
     this.log = {} as Logger;
   }
@@ -68,13 +67,15 @@ export default class ChamberlainService {
   private deviceId: string;
   private username: string;
   private password: string;
+  private myqUserAgent: string;
   private securityToken: string;
   private log: Logger;
 
-  init(username: string, password: string, deviceId: string, log: Logger){
+  init(username: string, password: string, deviceId: string, myqUserAgent: string, log: Logger){
     this.deviceId = deviceId;
     this.username = username;
     this.password = password;
+    this.myqUserAgent = myqUserAgent;
     this.log = log;
   }
 
@@ -197,6 +198,7 @@ export default class ChamberlainService {
       url: options.url,
       headers: {
         ...this.MYQ_HEADERS,
+        'User-Agent': this.myqUserAgent,
         SecurityToken : this.securityToken,
       },
       params: options.params || {},
@@ -342,6 +344,7 @@ export default class ChamberlainService {
           url: `${this.URL_AUTH}`,
           headers: {
             ...this.MYQ_HEADERS,
+            'User-Agent': this.myqUserAgent,
           },
           data: {
             Username: this.username,

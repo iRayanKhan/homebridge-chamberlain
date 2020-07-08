@@ -6,7 +6,8 @@ If you get multiple ID's or it says it's invalid, use the one with CG.
   "accessory": "Chamberlain",
   "name": "Garage Door",
   "username": "your mychamberlain.com email",
-  "password": "your mychamberlain.com password"
+  "password": "your mychamberlain.com password",
+  "myqUserAgent": "myQ/19569 CFNetwork/1107.1 Darwin/19.0.0"
 }
 ```
 
@@ -18,14 +19,16 @@ If you have multiple garage doors, the plugin will throw an error and list the c
   "name": "Main Garage Door",
   "username": "your mychamberlain.com email",
   "password": "your mychamberlain.com password",
-  "deviceId": "xxx"
+  "deviceId": "xxx",
+  "myqUserAgent": "myQ/19569 CFNetwork/1107.1 Darwin/19.0.0"
 },
 {
   "accessory": "Chamberlain",
   "name": "Side Garage Door",
   "username": "your mychamberlain.com email",
   "password": "your mychamberlain.com password",
-  "deviceId": "xxx"
+  "deviceId": "xxx",
+  "myqUserAgent": "myQ/19569 CFNetwork/1107.1 Darwin/19.0.0"
 },
 ...
 ```
