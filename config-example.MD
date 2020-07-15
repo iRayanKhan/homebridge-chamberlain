@@ -20,7 +20,10 @@ If you have multiple garage doors, the plugin will throw an error and list the c
   "username": "your mychamberlain.com email",
   "password": "your mychamberlain.com password",
   "deviceId": "xxx",
-  "myqUserAgent": "myQ/19569 CFNetwork/1107.1 Darwin/19.0.0"
+  "myqUserAgent": "myQ/19569 CFNetwork/1107.1 Darwin/19.0.0",
+  "idleDelay":30000,
+  "activeDelay":2000,
+  "debug":true
 },
 {
   "accessory": "Chamberlain",

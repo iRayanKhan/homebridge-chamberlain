@@ -2,6 +2,7 @@
 import * as rax from 'retry-axios';
 import axios, {AxiosRequestConfig} from 'axios';
 import { Logger } from 'homebridge';
+import util from 'util';
 
 import {MyQDevice, MyQAccount} from './MyQTypes';
 
@@ -60,6 +61,7 @@ export default class ChamberlainService {
     this.myqUserAgent = '';
     this.securityToken = '';
     this.log = {} as Logger;
+    this.debug = false;
   }
 
   private myqAccount: MyQAccount;
@@ -70,13 +72,15 @@ export default class ChamberlainService {
   private myqUserAgent: string;
   private securityToken: string;
   private log: Logger;
+  private debug: boolean;
 
-  init(username: string, password: string, deviceId: string, myqUserAgent: string, log: Logger){
+  init(username: string, password: string, deviceId: string, myqUserAgent: string, log: Logger, debug = false){
     this.deviceId = deviceId;
     this.username = username;
     this.password = password;
     this.myqUserAgent = myqUserAgent;
     this.log = log;
+    this.debug = debug;
   }
 
   // 'Wrapper' function to handle making sure the token, account and device are populated
@@ -254,8 +258,11 @@ export default class ChamberlainService {
           url: `${this.URL_MY}`,
         };
         const response = await this.axiosRetry(options);
-        // this.log.debug('response ', response.Account);
         this.myqAccount = response.Account;
+        if(this.debug){
+          this.log.debug('myQAccount: ');
+          this.log.debug(util.inspect(this.myqAccount, { colors: true, sorted: true, depth: 3 }));
+        }
       }
       this.log.debug(`getAccountId return ${this.myqAccount.Id}`);
       return this.myqAccount.Id;
@@ -280,7 +287,18 @@ export default class ChamberlainService {
         };
         const response = await this.axiosRetry(options);
         const fullDeviceList = response.items;
+
+        if(this.debug){
+          this.log.debug('fullDeviceList: ');
+          this.log.debug(util.inspect(fullDeviceList, { colors: true, sorted: true, depth: 3 }));
+        }
+
         const filteredDeviceList = this.filterDeviceList(fullDeviceList);
+
+        if(this.debug){
+          this.log.debug('filteredDeviceList: ');
+          this.log.debug(util.inspect(filteredDeviceList, { colors: true, sorted: true, depth: 3 }));
+        }
 
         if (filteredDeviceList.length === 0) {
           throw Error('No controllable devices found');
@@ -295,6 +313,10 @@ export default class ChamberlainService {
       if(!this.deviceId || this.deviceId === ''){
         // output the device ID for the first time configuration
         this.log.error(`***** deviceId ${this.myqDevice.serial_number} *****`);
+      }
+      if(this.debug){
+        this.log.debug('myQDevice: ');
+        this.log.debug(util.inspect(this.myqDevice, { colors: true, sorted: true, depth: 3 }));
       }
       this.log.debug('return this.myqDevice');
       return this.myqDevice;

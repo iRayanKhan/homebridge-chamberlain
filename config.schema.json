@@ -36,7 +36,26 @@
           "myqUserAgent": {
             "title": "MyQ User Agent",
             "type": "string",
-            "description": "MyQ User Agent to be included with every request"
+            "description": "MyQ User Agent to be included with every request",
+            "required": false
+          },
+          "activeDelay": {
+            "title": "Active Delay",
+            "type": "number",
+            "description": "When door was active how long to poll for changes",
+            "required": false
+          },
+          "idleDelay": {
+            "title": "Idle Delay",
+            "type": "number",
+            "description": "When door was idle how long to poll for changes",
+            "required": false
+          },
+          "debug":{
+            "title": "Debug Logging",
+            "type": "boolean",
+            "required": false,
+            "description": "Log myQ debugging messages. Default: false"
           }
         }
       }

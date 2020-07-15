@@ -11,9 +11,6 @@ import ChamberlainService from './chamberlainService';
 import { ChamberlainHomebridgePlatform } from './platform';
 import callbackify from './util/callbackify';
 
-const ACTIVE_DELAY = 1000 * 2; // When the targetState !== currentState poll more often
-const IDLE_DELAY = 1000 * 30;
-
 /**
  * Chamberlain Accessory
  * An instance of this class is created for each accessory your platform registers
@@ -31,17 +28,31 @@ export class ChamberlainAccessory {
   private pollTimeoutId!: NodeJS.Timeout;
   private deviceId: string;
 
+  private configPoll = {
+    activeDelay : 2000,
+    idleDelay: 30000,
+  }
+
   constructor(
     private readonly platform: ChamberlainHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
     this.log = this.platform.log;
-    const { username, password, deviceId, myqUserAgent } = accessory.context.device;
+    const { username, password, deviceId, myqUserAgent, activeDelay, idleDelay, debug } = accessory.context.device;
     this.deviceId = deviceId;
+
+    this.log.debug(accessory.context.device);
 
     const garageDoorOpener = this.platform.Service.GarageDoorOpener;
 
-    this.chamberlainService.init(username, password, deviceId, myqUserAgent, this.log);
+    this.chamberlainService.init(username, password, deviceId, myqUserAgent, this.log, debug);
+    if(idleDelay){
+      this.configPoll.idleDelay = idleDelay;
+    }
+
+    if(activeDelay){
+      this.configPoll.activeDelay = activeDelay;
+    }
 
     // get the GarageDoorOpener service if it exists, otherwise create a new GarageDoorOpener service
     this.service =
@@ -106,8 +117,8 @@ export class ChamberlainAccessory {
 
     const delay =
       this.targetDoorState !== this.currentDoorState
-        ? ACTIVE_DELAY
-        : IDLE_DELAY;
+        ? this.configPoll.activeDelay
+        : this.configPoll.idleDelay;
 
     this.log.debug(
       `POLL currentDoorState ${this.currentDoorState} targetDoorState ${this.targetDoorState} (Delay ${delay})`,
