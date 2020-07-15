@@ -104,14 +104,14 @@ export class ChamberlainAccessory {
     // get (and set) the current door state
     await this.getCurrentDoorState();
 
-    this.log.debug(
-      `POLL currentDoorState ${this.currentDoorState} targetDoorState ${this.targetDoorState}`,
-    );
-
     const delay =
       this.targetDoorState !== this.currentDoorState
         ? ACTIVE_DELAY
         : IDLE_DELAY;
+
+    this.log.debug(
+      `POLL currentDoorState ${this.currentDoorState} targetDoorState ${this.targetDoorState} (Delay ${delay})`,
+    );
 
     // set up a new poll
     this.pollTimeoutId = setTimeout(this.poll, delay);
