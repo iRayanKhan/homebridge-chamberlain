@@ -8,6 +8,7 @@
   "scripts": {
     "lint": "eslint src/**.ts",
     "watch": "npm run build && npm link && nodemon",
+    "start": "npm run watch",
     "build": "rimraf ./dist && tsc",
     "prepublishOnly": "npm run lint && npm run build",
     "mock": "cd mock && npx mock-json-server data.json --port=3000"

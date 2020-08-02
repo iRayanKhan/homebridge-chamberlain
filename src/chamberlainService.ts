@@ -385,6 +385,7 @@ export default class ChamberlainService {
            * The request was made and the server responded with a
            * status code that falls out of the range of 2xx
            */
+          this.log.error('getSecurityToken error.response');
           this.log.error(error.response.data);
           this.log.error(error.response.status);
         } else if (error.request) {
@@ -393,6 +394,7 @@ export default class ChamberlainService {
            * is an instance of XMLHttpRequest in the browser and an instance
            * of http.ClientRequest in Node.js
            */
+          this.log.error('getSecurityToken error.request');
           this.log.error(error.request);
         } else {
           // Something happened in setting up the request and triggered an Error
