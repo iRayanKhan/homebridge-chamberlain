@@ -31,6 +31,8 @@ export class ChamberlainAccessory {
   private configPoll = {
     activeDelay : 2000,
     idleDelay: 30000,
+    tries: 0,
+    maxTries: 15,
   }
 
   constructor(
@@ -52,6 +54,12 @@ export class ChamberlainAccessory {
 
     if(activeDelay){
       this.configPoll.activeDelay = activeDelay;
+    }
+
+    //make sure the maxTries covers at least 30 seconds
+    if((this.configPoll.activeDelay * this.configPoll.maxTries) < 30000){
+      this.configPoll.maxTries = this.configPoll.activeDelay / 30000;
+      this.log.debug(`Setting this.configPoll.maxTries to: ${this.configPoll.maxTries}`);
     }
 
     // get the GarageDoorOpener service if it exists, otherwise create a new GarageDoorOpener service
@@ -115,10 +123,22 @@ export class ChamberlainAccessory {
     // get (and set) the current door state
     await this.getCurrentDoorState();
 
-    const delay =
-      this.targetDoorState !== this.currentDoorState
-        ? this.configPoll.activeDelay
-        : this.configPoll.idleDelay;
+    let delay;
+    if(this.targetDoorState !== this.currentDoorState){
+      delay = this.configPoll.activeDelay;
+      this.configPoll.tries+=1;
+      this.log.debug(`currentDoorState ${this.currentDoorState} does not match targetDoorState ${this.targetDoorState} this.configPoll.tries: ${this.configPoll.tries}`);
+    } else {
+      delay = this.configPoll.idleDelay;
+      this.configPoll.tries = 0;
+      this.log.debug(`currentDoorState ${this.currentDoorState} matches targetDoorState ${this.targetDoorState} this.configPoll.tries:${this.configPoll.tries}`);
+    }
+
+    if(this.configPoll.tries >= this.configPoll.maxTries){
+      this.log.debug(`this.configPoll.maxTries exceeded: ${this.configPoll.maxTries} - asking to setTargetDoorState ${this.currentDoorState}`);
+      this.setTargetDoorState(this.currentDoorState);
+      this.configPoll.tries = 0;
+    }
 
     this.log.debug(
       `POLL currentDoorState ${this.currentDoorState} targetDoorState ${this.targetDoorState} (Delay ${delay})`,
