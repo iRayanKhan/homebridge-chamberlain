@@ -17,7 +17,8 @@
         "title": "Email",
         "type": "string",
         "required": true,
-        "description": "Your MyChamberlain.com email."
+        "description": "Your MyChamberlain.com email.",
+        "format": "email"
       },
       "password": {
         "title": "Password",
