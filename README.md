@@ -11,14 +11,16 @@
 
 </span>
 
-
+# Note:
+This plugin has now been deprecated. Please use [this](https://github.com/hjdhjd/homebridge-myq) plugin.
 
 # Installation
-0) Install Homebridge:   ```sudo npm i -g homebridge --unsafe-perm```
-1) Download this plugin: ```sudo npm i -g homebridge-chamberlain```
-2) Add the [config parameters](https://github.com/iRayanKhan/homebridge-chamberlain/blob/master/config-example.MD) to your [config.json](https://github.com/nfarina/homebridge/blob/master/config-sample.json) file.
-3) Run the plugin without the ```deviceID``` field to generate your deviceID's
-4) Add the ```deviceID's```
+1) Install Homebridge:   ```sudo npm i -g homebridge --unsafe-perm```
+2) Download this plugin: ```sudo npm i -g homebridge-chamberlain```
+3) Add the [config parameters](https://github.com/iRayanKhan/homebridge-chamberlain/blob/master/config-example.MD) to your [config.json](https://github.com/nfarina/homebridge/blob/master/config-sample.json) file.
+4) Run the plugin without the ```deviceID``` field to generate your deviceID's
+5) Add the ```deviceID's```
+6) Restart Homebridge
 
 # Issues 
 If you experience any issues, please check the [common issues page](https://github.com/iRayanKhan/homebridge-chamberlain/wiki/Common-Issues) before opening an issue.
